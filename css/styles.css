@@ -43,8 +43,12 @@
   pointer-events: none;
 }
 
+.splash-screen.fade-out,
 .splash-screen.is-gone {
-  display: none;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  display: none !important;
 }
 
 .splash-content {
@@ -255,14 +259,31 @@ body {
 .stage-badge {
   display: inline-flex;
   align-items: center;
-  padding: 5px 10px;
+  justify-content: center;
+  min-height: 32px;
+  padding: 5px 11px;
   border-radius: 999px;
+  font-family: inherit;
   font-size: 12px;
   font-weight: 700;
+  line-height: 1.2;
   background: linear-gradient(135deg, #C95A78 0%, #D86B85 100%);
   color: #ffffff;
   border: 1px solid rgba(180, 71, 101, 0.25);
   box-shadow: 0 2px 8px rgba(201, 90, 120, 0.22);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.1s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+
+.stage-badge:hover {
+  filter: brightness(1.04);
+  box-shadow: 0 4px 12px rgba(201, 90, 120, 0.3);
+}
+
+.stage-badge:active {
+  transform: scale(0.95);
+  box-shadow: 0 1px 4px rgba(201, 90, 120, 0.2);
 }
 
 .icon-btn {
@@ -350,6 +371,16 @@ body {
   border-radius: var(--radius-lg);
   padding: 20px;
   box-shadow: var(--shadow);
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+#date-setup-card {
+  scroll-margin-top: 76px;
+}
+
+.card.is-highlighted {
+  border-color: #C95A78;
+  box-shadow: 0 0 0 3px rgba(201, 90, 120, 0.24), 0 10px 26px rgba(201, 90, 120, 0.16);
 }
 
 .card h2,

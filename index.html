@@ -43,7 +43,13 @@
         </div>
       </div>
       <div class="header-actions">
-        <span id="header-stage-badge" class="stage-badge">Set date</span>
+        <button
+          type="button"
+          id="header-stage-badge"
+          class="stage-badge"
+          aria-label="Go to Date Setup"
+          title="Set or update pregnancy date"
+        >Set date</button>
         <button
           type="button"
           id="open-care-plan-btn"
@@ -1143,14 +1149,20 @@
       var splash = document.getElementById('splash-screen');
       if (!splash) return;
       var dismissed = false;
+      function finishDismiss() {
+        splash.classList.add('fade-out');
+        splash.classList.add('is-gone');
+        splash.style.pointerEvents = 'none';
+        splash.style.display = 'none';
+      }
       function hideSplash() {
         if (dismissed) return;
         dismissed = true;
+        splash.style.pointerEvents = 'none';
         splash.classList.add('is-fading');
         splash.setAttribute('aria-hidden', 'true');
-        window.setTimeout(function () {
-          splash.classList.add('is-gone');
-        }, 580);
+        splash.addEventListener('transitionend', finishDismiss, { once: true });
+        window.setTimeout(finishDismiss, 600);
       }
       function scheduleFade() {
         window.setTimeout(hideSplash, 1500);

@@ -51,6 +51,7 @@
   let deferredInstallPrompt = null;
   let timerIntervalId = null;
   let toastTimeoutId = null;
+  let dateHighlightTimerId = null;
 
   const dom = {};
 
@@ -130,6 +131,7 @@
     dom.trimesterVal = $('trimester-val');
     dom.lmpVal = $('lmp-val');
 
+    dom.dateSetupCard = $('date-setup-card');
     dom.dateModeButtons = Array.from(document.querySelectorAll('[data-date-mode]'));
     dom.dateSetupForm = $('date-setup-form');
     dom.dateInputLabel = $('date-input-label');
@@ -2809,7 +2811,36 @@
     ensureLiveTicker();
   }
 
+  function focusDateSetupCard() {
+    switchTab('progress');
+    const card = dom.dateSetupCard || $('date-setup-card');
+    if (card) {
+      if (typeof card.scrollIntoView === 'function') {
+        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      card.classList.remove('is-highlighted');
+      void card.offsetWidth;
+      card.classList.add('is-highlighted');
+      if (dateHighlightTimerId) clearTimeout(dateHighlightTimerId);
+      dateHighlightTimerId = setTimeout(() => {
+        card.classList.remove('is-highlighted');
+        dateHighlightTimerId = null;
+      }, 1800);
+    }
+    if (dom.primaryDateInput) {
+      try {
+        dom.primaryDateInput.focus({ preventScroll: true });
+      } catch (_) {
+        dom.primaryDateInput.focus();
+      }
+    }
+  }
+
   function bindEvents() {
+    if (dom.headerStageBadge) {
+      dom.headerStageBadge.addEventListener('click', focusDateSetupCard);
+    }
+
     dom.navButtons.forEach((btn) => {
       btn.addEventListener('click', () => switchTab(btn.dataset.tab));
     });
