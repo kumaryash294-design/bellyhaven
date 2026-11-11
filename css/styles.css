@@ -3028,6 +3028,8 @@ a:focus-visible,
 .settings-blossom-card.is-unlocked .settings-blossom-badge {
   background: linear-gradient(135deg, #6b9974 0%, #588461 100%);
   border-color: rgba(74, 118, 83, 0.35);
+  color: #ffffff;
+  letter-spacing: 0.02em;
 }
 
 .settings-blossom-title-row {
@@ -3049,6 +3051,14 @@ a:focus-visible,
 .settings-blossom-badge {
   flex-shrink: 0;
   align-self: flex-start;
+  padding: 4px 11px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  background: linear-gradient(135deg, #FBE9E4 0%, #F7D8E2 100%);
+  color: #9e3552;
+  border: 1px solid rgba(201, 90, 120, 0.42);
+  box-shadow: 0 2px 6px rgba(201, 90, 120, 0.12);
 }
 
 .settings-blossom-desc,

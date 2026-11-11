@@ -2649,7 +2649,7 @@
       dom.settingsBlossomCard.classList.toggle('is-unlocked', unlocked);
     }
     if (dom.settingsBlossomBadge) {
-      dom.settingsBlossomBadge.textContent = unlocked ? 'Blossom Active ✨' : 'Free Companion';
+      dom.settingsBlossomBadge.textContent = unlocked ? 'Blossom Active ✨' : 'PRO';
     }
     if (dom.settingsBlossomDesc) {
       dom.settingsBlossomDesc.textContent = unlocked
