@@ -2141,12 +2141,44 @@
 
   /* ---------------- BOUTIQUE FEATURES: BABY NOTE, WEIGHT CHART, GYRO TILT ---------------- */
 
-  function setBabyNoteListenState(isSpeaking) {
+  function setBabyNoteListenState(nextState) {
     if (!dom.babyNoteListenBtn) return;
-    dom.babyNoteListenBtn.classList.toggle('is-speaking', Boolean(isSpeaking));
-    dom.babyNoteListenBtn.setAttribute('aria-pressed', String(Boolean(isSpeaking)));
+    let normalized = 'idle';
+    if (typeof nextState === 'string') {
+      if (nextState === 'loading' || nextState === 'playing' || nextState === 'paused' || nextState === 'idle') {
+        normalized = nextState;
+      }
+    } else if (nextState) {
+      normalized = 'playing';
+    }
+
+    const isLoading = normalized === 'loading';
+    const isPlaying = normalized === 'playing';
+    const isPaused = normalized === 'paused';
+
+    dom.babyNoteListenBtn.classList.toggle('is-loading', isLoading);
+    dom.babyNoteListenBtn.classList.toggle('is-playing', isPlaying);
+    dom.babyNoteListenBtn.classList.toggle('is-speaking', isPlaying);
+    dom.babyNoteListenBtn.classList.toggle('is-paused', isPaused);
+    dom.babyNoteListenBtn.setAttribute('aria-pressed', String(isLoading || isPlaying));
+    dom.babyNoteListenBtn.setAttribute('aria-busy', String(isLoading));
+
+    let labelText = 'Listen';
+    let ariaLabel = 'Listen to A Note from Baby';
+    if (isLoading) {
+      labelText = 'Tuning voice...';
+      ariaLabel = 'Tuning neural voice, tap to cancel';
+    } else if (isPlaying) {
+      labelText = 'Playing...';
+      ariaLabel = 'Playing A Note from Baby, tap to pause';
+    } else if (isPaused) {
+      labelText = 'Resume';
+      ariaLabel = 'Paused A Note from Baby, tap to resume';
+    }
+
+    dom.babyNoteListenBtn.setAttribute('aria-label', ariaLabel);
     if (dom.babyNoteListenLabel) {
-      dom.babyNoteListenLabel.textContent = isSpeaking ? 'Stop' : 'Listen';
+      dom.babyNoteListenLabel.textContent = labelText;
     }
   }
 
@@ -2155,7 +2187,7 @@
     const note = babyNotesMod.getBabyNote(week);
     if (activeNoteWeek !== null && activeNoteWeek !== note.week && speechReader && speechReader.isSpeaking()) {
       speechReader.stop();
-      setBabyNoteListenState(false);
+      setBabyNoteListenState('idle');
     }
     activeNoteWeek = note.week;
 
@@ -2167,29 +2199,55 @@
 
   function handleBabyNoteListenClick() {
     if (!speechReader || !babyNotesMod) return;
-    if (speechReader.isSpeaking()) {
+
+    const currentState = typeof speechReader.getState === 'function'
+      ? speechReader.getState()
+      : (speechReader.isSpeaking() ? 'playing' : 'idle');
+
+    if (currentState === 'loading') {
       speechReader.stop();
-      setBabyNoteListenState(false);
+      setBabyNoteListenState('idle');
       return;
+    }
+
+    if (currentState === 'playing') {
+      if (typeof speechReader.pause === 'function' && speechReader.pause()) {
+        setBabyNoteListenState('paused');
+      } else {
+        speechReader.stop();
+        setBabyNoteListenState('idle');
+      }
+      return;
+    }
+
+    if (currentState === 'paused') {
+      if (typeof speechReader.resume === 'function' && speechReader.resume()) {
+        setBabyNoteListenState('playing');
+        return;
+      }
+      speechReader.stop();
     }
 
     const week = activeNoteWeek || 4;
     const note = babyNotesMod.getBabyNote(week);
     const started = speechReader.speak(note, {
-      onStart: () => setBabyNoteListenState(true),
-      onEnd: () => setBabyNoteListenState(false),
+      onLoading: () => setBabyNoteListenState('loading'),
+      onStart: () => setBabyNoteListenState('playing'),
+      onPause: () => setBabyNoteListenState('paused'),
+      onResume: () => setBabyNoteListenState('playing'),
+      onEnd: () => setBabyNoteListenState('idle'),
       onError: () => {
-        setBabyNoteListenState(false);
+        setBabyNoteListenState('idle');
         showToast('Audio playback unavailable in this browser');
       },
       onUnsupported: () => {
-        setBabyNoteListenState(false);
+        setBabyNoteListenState('idle');
         showToast('Speech synthesis is not supported in this browser');
       }
     });
 
     if (!started) {
-      setBabyNoteListenState(false);
+      setBabyNoteListenState('idle');
     }
   }
 

@@ -442,6 +442,133 @@
         }
       });
 
+      test('baby-notes Neural TTS speech reader supports tuning -> playing -> pause -> resume -> reset & memory cache', async () => {
+        const events = [];
+        let workerCalls = 0;
+        let audioInstance = null;
+
+        const fakeWorkerFactory = () => ({
+          postMessage(msg) {
+            if (msg.type !== 'synthesize') return;
+            workerCalls++;
+            const wav = new ArrayBuffer(44);
+            setTimeout(() => {
+              this.onmessage({
+                data: { id: msg.id, ok: true, wavBuffer: wav, sampleRate: 22050, cached: false }
+              });
+            }, 15);
+          },
+          terminate() {}
+        });
+
+        const fakeAudioFactory = () => {
+          audioInstance = {
+            paused: true,
+            play() {
+              this.paused = false;
+              return Promise.resolve();
+            },
+            pause() {
+              this.paused = true;
+            }
+          };
+          return audioInstance;
+        };
+
+        const reader = babyNotesMod.createSpeechReader({
+          workerFactory: fakeWorkerFactory,
+          audioFactory: fakeAudioFactory,
+          synth: null,
+          UtteranceCtor: null
+        });
+
+        assertEqual(reader.isSupported(), true);
+        const note = babyNotesMod.getBabyNote(16);
+
+        await new Promise((resolve) => {
+          reader.speak(note, {
+            onLoading: () => events.push('loading:' + reader.getState()),
+            onStart: () => {
+              events.push('playing:' + reader.getState());
+              const pausedOk = reader.pause();
+              assertEqual(pausedOk, true);
+              events.push('paused:' + reader.getState());
+              const resumedOk = reader.resume();
+              assertEqual(resumedOk, true);
+              events.push('resumed:' + reader.getState());
+              audioInstance.onended();
+            },
+            onEnd: () => {
+              events.push('ended:' + reader.getState());
+              resolve();
+            }
+          });
+        });
+
+        assertEqual(workerCalls, 1);
+        assertEqual(events.join('|'), 'loading:loading|playing:playing|paused:paused|resumed:playing|ended:idle');
+
+        // Replaying the same note should reuse the in-memory WAV cache without invoking worker again
+        await new Promise((resolve) => {
+          reader.speak(note, {
+            onStart: () => audioInstance.onended(),
+            onEnd: () => resolve()
+          });
+        });
+        assertEqual(workerCalls, 1);
+      });
+
+      test('baby-notes speech reader falls back smoothly to gentle SpeechSynthesis on low memory or worker error', async () => {
+        let spokenUtterance = null;
+        let fallbackTriggered = false;
+        let ended = false;
+
+        function FakeUtterance(text) {
+          this.text = text;
+        }
+        const fakeSynth = {
+          getVoices: () => [{ name: 'Samantha Natural', lang: 'en-US' }],
+          cancel() {},
+          speak(u) {
+            spokenUtterance = u;
+            setTimeout(() => {
+              if (typeof u.onend === 'function') u.onend();
+            }, 10);
+          }
+        };
+
+        const failingWorkerFactory = () => ({
+          postMessage(msg) {
+            if (msg.type === 'synthesize') {
+              setTimeout(() => {
+                this.onmessage({ data: { id: msg.id, ok: false, error: 'Model load failed' } });
+              }, 10);
+            }
+          },
+          terminate() {}
+        });
+
+        const reader = babyNotesMod.createSpeechReader({
+          workerFactory: failingWorkerFactory,
+          synth: fakeSynth,
+          UtteranceCtor: FakeUtterance
+        });
+
+        await new Promise((resolve) => {
+          reader.speak(babyNotesMod.getBabyNote(20), {
+            onFallback: () => { fallbackTriggered = true; },
+            onEnd: () => { ended = true; resolve(); }
+          });
+        });
+
+        assertEqual(fallbackTriggered, true);
+        assertEqual(ended, true);
+        assertTrue(Boolean(spokenUtterance));
+        assertEqual(spokenUtterance.rate, 0.88);
+        assertEqual(spokenUtterance.pitch, 1.06);
+        assertEqual(spokenUtterance.voice.name, 'Samantha Natural');
+      });
+
       test('weight-tracker calculates ACOG BMI categories, 40w trajectories, and smooth SVG curves', () => {
         const uw = weightMod.computeBaselineBmi(46, 165);
         const nm = weightMod.computeBaselineBmi(60, 165);

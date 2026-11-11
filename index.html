@@ -12,6 +12,7 @@
   <link rel="apple-touch-icon" href="./icons/icon-192.png">
   <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
   <link rel="icon" type="image/svg+xml" href="./icons/icon.svg">
+  <link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/@mintplex-labs/piper-tts-web@1.0.5/+esm" crossorigin>
   <link rel="stylesheet" href="./css/styles.css">
 </head>
 <body>
@@ -175,9 +176,11 @@
               id="baby-note-listen-btn"
               class="listen-btn"
               aria-pressed="false"
+              aria-busy="false"
               aria-label="Listen to A Note from Baby"
             >
-              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <span class="listen-spinner" aria-hidden="true"></span>
+              <svg class="listen-icon" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
                 <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
                 <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
@@ -1139,6 +1142,29 @@
   <script src="./js/ai-doula.js"></script>
   <script src="./js/care-plan.js"></script>
   <script src="./js/sound-machine.js"></script>
+  <script>
+    window.BELLYHAVEN_PIPER_CONFIG = {
+      workerUrl: './js/piper-worker.js',
+      piperTtsWebUrl: 'https://cdn.jsdelivr.net/npm/@mintplex-labs/piper-tts-web@1.0.5/+esm',
+      phonemizerUrl: 'https://cdn.jsdelivr.net/npm/@mintplex-labs/piper-tts-web@1.0.5/dist/piper-o91UDS6e.js/+esm',
+      ortWasmUrl: 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.27.0/wasm/+esm',
+      ortWasmMjsUrl: 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.27.0/dist/ort-wasm-simd-threaded.mjs',
+      ortWasmBinUrl: 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.27.0/dist/ort-wasm-simd-threaded.wasm',
+      piperWasmUrl: 'https://cdn.jsdelivr.net/npm/@diffusionstudio/piper-wasm@1.0.0/build/piper_phonemize.wasm',
+      piperDataUrl: 'https://cdn.jsdelivr.net/npm/@diffusionstudio/piper-wasm@1.0.0/build/piper_phonemize.data',
+      hfBase: 'https://huggingface.co/diffusionstudio/piper-voices/resolve/main',
+      voiceId: 'en_US-hfc_female-medium'
+    };
+  </script>
+  <script type="module">
+    import(window.BELLYHAVEN_PIPER_CONFIG.piperTtsWebUrl)
+      .then((mod) => {
+        window.__bellyHavenPiperCdn = mod;
+      })
+      .catch(() => {
+        // Offline or CDN unavailable on startup: Baby Notes falls back to SpeechSynthesis.
+      });
+  </script>
   <script src="./js/baby-notes.js"></script>
   <script src="./js/weight-tracker.js"></script>
   <script src="./js/birth-plan.js"></script>

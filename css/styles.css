@@ -2688,18 +2688,64 @@ a:focus-visible,
   font-size: 12.5px;
   font-weight: 700;
   cursor: pointer;
-  transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  touch-action: manipulation;
+  user-select: none;
+  transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.12s ease;
 }
 
 .listen-btn:hover {
   background: #fdf0f4;
 }
 
-.listen-btn.is-speaking {
+.listen-btn:active {
+  transform: scale(0.97);
+}
+
+.listen-spinner {
+  display: none;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: 2px solid rgba(201, 90, 120, 0.25);
+  border-top-color: #C95A78;
+  animation: listen-spin 0.75s linear infinite;
+  flex-shrink: 0;
+}
+
+.listen-btn.is-loading {
+  background: #fdf0f4;
+  border-color: #C95A78;
+  color: #9e3552;
+  box-shadow: 0 0 0 3px rgba(216, 107, 133, 0.16);
+}
+
+.listen-btn.is-loading .listen-spinner {
+  display: inline-block;
+}
+
+.listen-btn.is-loading .listen-icon {
+  display: none;
+}
+
+.listen-btn.is-paused {
+  background: #fff6f8;
+  border-color: #C95A78;
+  color: #9e3552;
+  box-shadow: 0 0 0 3px rgba(201, 90, 120, 0.18);
+}
+
+.listen-btn.is-speaking,
+.listen-btn.is-playing {
   background: linear-gradient(135deg, #C95A78 0%, #D86B85 100%);
   border-color: #C95A78;
   color: #ffffff;
   box-shadow: 0 0 0 4px rgba(216, 107, 133, 0.28);
+}
+
+@keyframes listen-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .baby-note-salutation {

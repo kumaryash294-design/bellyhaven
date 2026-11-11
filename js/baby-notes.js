@@ -277,28 +277,550 @@
     return pool.find((v) => v.default) || pool[0] || null;
   }
 
-  function createSpeechReader() {
-    let speaking = false;
+  function normalizeSpeechText(noteObj) {
+    const rawParts = [noteObj && noteObj.title, noteObj && noteObj.message, noteObj && noteObj.signOff]
+      .filter(Boolean)
+      .map((part) => String(part).trim())
+      .filter(Boolean);
+
+    const punctuated = rawParts.map((part) => (/[.!?…]$/.test(part) ? part : `${part}.`));
+    return punctuated
+      .join(' ')
+      .replace(/[\u2018\u2019]/g, "'")
+      .replace(/[\u201C\u201D]/g, '"')
+      .replace(/[\u2013\u2014]/g, ', ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function createSpeechReader(options = {}) {
+    const win = typeof window !== 'undefined' ? window : null;
+    const synthApi = options.synth !== undefined ? options.synth : (win && win.speechSynthesis) || null;
+    const UtteranceCtor = options.UtteranceCtor !== undefined
+      ? options.UtteranceCtor
+      : (win && win.SpeechSynthesisUtterance) || null;
+    const piperConfig = {
+      workerUrl: './js/piper-worker.js',
+      voiceId: 'en_US-hfc_female-medium',
+      ...((win && win.BELLYHAVEN_PIPER_CONFIG) || {}),
+      ...(options.piperConfig || {})
+    };
+
+    const wavCache = new Map();
+    const pendingRequests = new Map();
+    let requestCounter = 0;
+    let workerInstance = null;
+    let workerConfigured = false;
+    let state = 'idle'; // 'idle' | 'loading' | 'playing' | 'paused'
+    let activeRunId = 0;
+    let activeMode = null; // 'neural-audio' | 'neural-webaudio' | 'speech-synthesis'
+    let activeCallbacks = {};
     let activeUtterance = null;
+    let activeAudio = null;
+    let activeObjectUrl = null;
+    let activeAudioCtx = null;
+    let activeBufferSource = null;
+    let decodedAudioBuffer = null;
+    let webAudioStartedAt = 0;
+    let webAudioOffsetSec = 0;
+    let synthFallbackUsed = false;
+
+    function hasSystemSpeechSupport() {
+      return Boolean(synthApi && typeof synthApi.speak === 'function' && UtteranceCtor);
+    }
+
+    function hasNeuralTtsSupport() {
+      if (options.disableNeural === true) return false;
+      if (typeof options.isLowMemory === 'function' && options.isLowMemory()) return false;
+      if (typeof navigator !== 'undefined' && typeof navigator.deviceMemory === 'number' && navigator.deviceMemory <= 1) {
+        return false;
+      }
+
+      const hasWorker = typeof options.workerFactory === 'function' || typeof Worker === 'function';
+      const hasWasm = options.workerFactory ? true : typeof WebAssembly === 'object';
+      const hasPlayback =
+        typeof options.audioFactory === 'function' ||
+        typeof Audio === 'function' ||
+        Boolean(win && (win.AudioContext || win.webkitAudioContext));
+
+      return Boolean(hasWorker && hasWasm && hasPlayback);
+    }
 
     function isSupported() {
-      return (
-        typeof window !== 'undefined' &&
-        'speechSynthesis' in window &&
-        typeof window.SpeechSynthesisUtterance === 'function'
+      return hasNeuralTtsSupport() || hasSystemSpeechSupport();
+    }
+
+    function emitStateChange(nextState, detail = {}) {
+      state = nextState;
+      if (typeof activeCallbacks.onStateChange === 'function') {
+        activeCallbacks.onStateChange(nextState, detail);
+      }
+    }
+
+    function cleanupAudioPlayback() {
+      if (activeAudio) {
+        try {
+          activeAudio.onended = null;
+          activeAudio.onerror = null;
+          activeAudio.pause();
+          if ('src' in activeAudio) activeAudio.src = '';
+        } catch (_) {
+          // Ignore HTML5 audio cleanup failures
+        }
+        activeAudio = null;
+      }
+
+      if (activeObjectUrl && typeof URL !== 'undefined' && typeof URL.revokeObjectURL === 'function') {
+        try {
+          URL.revokeObjectURL(activeObjectUrl);
+        } catch (_) {
+          // Ignore revoke failures
+        }
+        activeObjectUrl = null;
+      }
+
+      if (activeBufferSource) {
+        try {
+          activeBufferSource.onended = null;
+          activeBufferSource.stop(0);
+          activeBufferSource.disconnect();
+        } catch (_) {
+          // Ignore Web Audio source stop errors
+        }
+        activeBufferSource = null;
+      }
+
+      decodedAudioBuffer = null;
+      webAudioStartedAt = 0;
+      webAudioOffsetSec = 0;
+    }
+
+    function cleanupWorkerRequests(reason) {
+      pendingRequests.forEach((entry) => {
+        if (entry.timerId) clearTimeout(entry.timerId);
+        entry.reject(new Error(reason || 'Speech request cancelled'));
+      });
+      pendingRequests.clear();
+    }
+
+    function resetWorker() {
+      cleanupWorkerRequests('Piper worker reset');
+      if (workerInstance && typeof workerInstance.terminate === 'function') {
+        try {
+          workerInstance.terminate();
+        } catch (_) {
+          // Ignore worker terminate error
+        }
+      }
+      workerInstance = null;
+      workerConfigured = false;
+    }
+
+    function ensureWorker() {
+      if (workerInstance) return workerInstance;
+
+      const worker = typeof options.workerFactory === 'function'
+        ? options.workerFactory(piperConfig.workerUrl, { type: 'module' })
+        : new Worker(piperConfig.workerUrl, { type: 'module' });
+
+      worker.onmessage = (event) => {
+        const data = (event && event.data) || {};
+        const req = pendingRequests.get(data.id);
+        if (!req) return;
+
+        if (data.type === 'progress') {
+          if (req.timerId) {
+            clearTimeout(req.timerId);
+            req.timerId = setTimeout(req.onTimeout, req.timeoutMs);
+          }
+          if (typeof req.onProgress === 'function') {
+            req.onProgress(data.progress);
+          }
+          return;
+        }
+
+        pendingRequests.delete(data.id);
+        if (req.timerId) clearTimeout(req.timerId);
+
+        if (data.ok && data.wavBuffer) {
+          req.resolve({
+            wavBuffer: data.wavBuffer,
+            sampleRate: data.sampleRate || 22050,
+            voiceId: data.voiceId || piperConfig.voiceId,
+            cached: Boolean(data.cached)
+          });
+        } else {
+          req.reject(new Error(data.error || 'Piper worker returned an invalid synthesis result'));
+        }
+      };
+
+      worker.onerror = () => {
+        resetWorker();
+      };
+
+      worker.onmessageerror = () => {
+        resetWorker();
+      };
+
+      workerInstance = worker;
+      return workerInstance;
+    }
+
+    function synthesizeViaWorker(text, runId, onProgress) {
+      const worker = ensureWorker();
+      if (!workerConfigured) {
+        try {
+          worker.postMessage({ type: 'configure', config: piperConfig });
+          workerConfigured = true;
+        } catch (_) {
+          workerConfigured = false;
+        }
+      }
+
+      const id = ++requestCounter;
+      const timeoutMs = typeof options.timeoutMs === 'number' ? options.timeoutMs : 65000;
+
+      return new Promise((resolve, reject) => {
+        const onTimeout = () => {
+          pendingRequests.delete(id);
+          reject(new Error('Piper neural synthesis timed out'));
+        };
+
+        const timerId = setTimeout(onTimeout, timeoutMs);
+        pendingRequests.set(id, {
+          resolve,
+          reject,
+          timerId,
+          onTimeout,
+          timeoutMs,
+          onProgress: (progress) => {
+            if (runId === activeRunId && typeof onProgress === 'function') {
+              onProgress(progress);
+            }
+          }
+        });
+
+        try {
+          worker.postMessage({
+            id,
+            type: 'synthesize',
+            text,
+            voiceId: piperConfig.voiceId
+          });
+        } catch (err) {
+          pendingRequests.delete(id);
+          clearTimeout(timerId);
+          reject(err);
+        }
+      });
+    }
+
+    function ensureAudioContext() {
+      if (activeAudioCtx) return activeAudioCtx;
+      const Ctx = options.AudioContextCtor || (win && (win.AudioContext || win.webkitAudioContext));
+      if (!Ctx) return null;
+      try {
+        activeAudioCtx = new Ctx();
+      } catch (_) {
+        activeAudioCtx = null;
+      }
+      return activeAudioCtx;
+    }
+
+    function unlockAudioContextGesture() {
+      const ctx = ensureAudioContext();
+      if (ctx && ctx.state === 'suspended' && typeof ctx.resume === 'function') {
+        try {
+          ctx.resume().catch(() => {});
+        } catch (_) {
+          // Ignore resume errors outside strict gesture window
+        }
+      }
+    }
+
+    function startWebAudioNode(offsetSec, runId) {
+      const ctx = ensureAudioContext();
+      if (!ctx || !decodedAudioBuffer) return false;
+
+      if (ctx.state === 'suspended' && typeof ctx.resume === 'function') {
+        ctx.resume().catch(() => {});
+      }
+
+      const src = ctx.createBufferSource();
+      src.buffer = decodedAudioBuffer;
+      src.connect(ctx.destination);
+      activeBufferSource = src;
+      webAudioOffsetSec = Math.max(0, offsetSec);
+      webAudioStartedAt = ctx.currentTime - webAudioOffsetSec;
+
+      src.onended = () => {
+        if (activeBufferSource !== src || runId !== activeRunId || state !== 'playing') return;
+        cleanupAudioPlayback();
+        activeMode = null;
+        emitStateChange('idle', { engine: 'neural-webaudio' });
+        if (typeof activeCallbacks.onEnd === 'function') activeCallbacks.onEnd();
+      };
+
+      src.start(0, webAudioOffsetSec);
+      return true;
+    }
+
+    async function playWavViaWebAudio(wavBuffer, runId) {
+      const ctx = ensureAudioContext();
+      if (!ctx || typeof ctx.decodeAudioData !== 'function') {
+        throw new Error('Web Audio API unavailable');
+      }
+
+      const bufferCopy = wavBuffer.slice(0);
+      decodedAudioBuffer = await ctx.decodeAudioData(bufferCopy);
+      if (runId !== activeRunId) return;
+
+      activeMode = 'neural-webaudio';
+      emitStateChange('playing', { engine: 'neural-webaudio' });
+      if (typeof activeCallbacks.onStart === 'function') activeCallbacks.onStart();
+      startWebAudioNode(0, runId);
+    }
+
+    async function playWavBuffer(wavBuffer, runId) {
+      if (runId !== activeRunId) return;
+
+      const blob = new Blob([wavBuffer], { type: 'audio/wav' });
+      const createAudio = typeof options.audioFactory === 'function'
+        ? options.audioFactory
+        : (url) => (typeof Audio === 'function' ? new Audio(url) : null);
+
+      const canUseHtmlAudio = Boolean(
+        options.audioFactory ||
+        (typeof Audio === 'function' && typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function')
       );
+
+      if (canUseHtmlAudio) {
+        const objectUrl = typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function'
+          ? URL.createObjectURL(blob)
+          : 'blob:bellyhaven-tts';
+        const audio = createAudio(objectUrl);
+
+        if (audio) {
+          activeObjectUrl = objectUrl;
+          activeAudio = audio;
+          activeMode = 'neural-audio';
+
+          audio.onended = () => {
+            if (activeAudio !== audio || runId !== activeRunId) return;
+            cleanupAudioPlayback();
+            activeMode = null;
+            emitStateChange('idle', { engine: 'neural-audio' });
+            if (typeof activeCallbacks.onEnd === 'function') activeCallbacks.onEnd();
+          };
+
+          audio.onerror = () => {
+            if (activeAudio !== audio || runId !== activeRunId) return;
+            cleanupAudioPlayback();
+            playWavViaWebAudio(wavBuffer, runId).catch(() => {
+              if (runId !== activeRunId) return;
+              speakWithSystemSpeech(normalizeSpeechText(activeCallbacks.noteObj), runId, true);
+            });
+          };
+
+          try {
+            const playResult = audio.play();
+            if (playResult && typeof playResult.then === 'function') {
+              await playResult;
+            }
+            if (runId !== activeRunId) {
+              cleanupAudioPlayback();
+              return;
+            }
+            emitStateChange('playing', { engine: 'neural-audio' });
+            if (typeof activeCallbacks.onStart === 'function') activeCallbacks.onStart();
+            return;
+          } catch (_) {
+            cleanupAudioPlayback();
+          }
+        }
+      }
+
+      await playWavViaWebAudio(wavBuffer, runId);
+    }
+
+    function speakWithSystemSpeech(textToRead, runId, isFallback) {
+      if (runId !== activeRunId) return false;
+      if (!hasSystemSpeechSupport()) {
+        activeMode = null;
+        emitStateChange('idle', { engine: 'none' });
+        if (typeof activeCallbacks.onUnsupported === 'function') {
+          activeCallbacks.onUnsupported();
+        } else if (typeof activeCallbacks.onError === 'function') {
+          activeCallbacks.onError(new Error('Speech playback unavailable'));
+        }
+        return false;
+      }
+
+      try {
+        synthApi.cancel();
+      } catch (_) {
+        // Ignore cancel failures
+      }
+
+      synthFallbackUsed = Boolean(isFallback);
+      const utterance = new UtteranceCtor(textToRead);
+      const preferredVoice = pickGentleVoice(synthApi);
+      if (preferredVoice) {
+        utterance.voice = preferredVoice;
+      }
+      utterance.lang = (preferredVoice && preferredVoice.lang) || 'en-US';
+      utterance.rate = 0.88;
+      utterance.pitch = 1.06;
+      utterance.volume = 0.92;
+
+      let startNotified = false;
+      const notifyStart = () => {
+        if (startNotified || runId !== activeRunId || activeUtterance !== utterance) return;
+        startNotified = true;
+        emitStateChange('playing', { engine: 'speech-synthesis', fallback: synthFallbackUsed });
+        if (synthFallbackUsed && typeof activeCallbacks.onFallback === 'function') {
+          activeCallbacks.onFallback();
+        }
+        if (typeof activeCallbacks.onStart === 'function') activeCallbacks.onStart();
+      };
+
+      utterance.onstart = notifyStart;
+
+      utterance.onend = () => {
+        if (activeUtterance !== utterance || runId !== activeRunId) return;
+        activeUtterance = null;
+        activeMode = null;
+        emitStateChange('idle', { engine: 'speech-synthesis' });
+        if (typeof activeCallbacks.onEnd === 'function') activeCallbacks.onEnd();
+      };
+
+      utterance.onerror = () => {
+        if (activeUtterance !== utterance || runId !== activeRunId) return;
+        activeUtterance = null;
+        activeMode = null;
+        emitStateChange('idle', { engine: 'speech-synthesis' });
+        if (typeof activeCallbacks.onError === 'function') activeCallbacks.onError();
+      };
+
+      activeUtterance = utterance;
+      activeMode = 'speech-synthesis';
+
+      try {
+        synthApi.speak(utterance);
+        notifyStart();
+        return true;
+      } catch (_) {
+        activeUtterance = null;
+        activeMode = null;
+        emitStateChange('idle', { engine: 'speech-synthesis' });
+        if (typeof activeCallbacks.onError === 'function') activeCallbacks.onError();
+        return false;
+      }
     }
 
     function stop() {
-      speaking = false;
+      activeRunId++;
+      activeMode = null;
       activeUtterance = null;
-      if (typeof window !== 'undefined' && window.speechSynthesis) {
+      synthFallbackUsed = false;
+      cleanupWorkerRequests('Stopped by user');
+      cleanupAudioPlayback();
+
+      if (synthApi && typeof synthApi.cancel === 'function') {
         try {
-          window.speechSynthesis.cancel();
+          synthApi.cancel();
         } catch (_) {
           // Ignore speech synthesis cancel errors
         }
       }
+
+      emitStateChange('idle', {});
+    }
+
+    function pause() {
+      if (state !== 'playing') return false;
+
+      if (activeMode === 'neural-audio' && activeAudio && typeof activeAudio.pause === 'function') {
+        try {
+          activeAudio.pause();
+          emitStateChange('paused', { engine: 'neural-audio' });
+          if (typeof activeCallbacks.onPause === 'function') activeCallbacks.onPause();
+          return true;
+        } catch (_) {
+          return false;
+        }
+      }
+
+      if (activeMode === 'neural-webaudio' && activeBufferSource && activeAudioCtx) {
+        try {
+          webAudioOffsetSec = Math.max(0, activeAudioCtx.currentTime - webAudioStartedAt);
+          activeBufferSource.onended = null;
+          activeBufferSource.stop(0);
+          activeBufferSource.disconnect();
+          activeBufferSource = null;
+          emitStateChange('paused', { engine: 'neural-webaudio' });
+          if (typeof activeCallbacks.onPause === 'function') activeCallbacks.onPause();
+          return true;
+        } catch (_) {
+          return false;
+        }
+      }
+
+      if (activeMode === 'speech-synthesis' && synthApi && typeof synthApi.pause === 'function') {
+        try {
+          synthApi.pause();
+          emitStateChange('paused', { engine: 'speech-synthesis' });
+          if (typeof activeCallbacks.onPause === 'function') activeCallbacks.onPause();
+          return true;
+        } catch (_) {
+          return false;
+        }
+      }
+
+      return false;
+    }
+
+    function resume() {
+      if (state !== 'paused') return false;
+      const runId = activeRunId;
+
+      if (activeMode === 'neural-audio' && activeAudio && typeof activeAudio.play === 'function') {
+        try {
+          const playRes = activeAudio.play();
+          if (playRes && typeof playRes.catch === 'function') {
+            playRes.catch(() => {
+              if (runId === activeRunId) stop();
+            });
+          }
+          emitStateChange('playing', { engine: 'neural-audio' });
+          if (typeof activeCallbacks.onResume === 'function') activeCallbacks.onResume();
+          return true;
+        } catch (_) {
+          return false;
+        }
+      }
+
+      if (activeMode === 'neural-webaudio' && decodedAudioBuffer) {
+        if (startWebAudioNode(webAudioOffsetSec, runId)) {
+          emitStateChange('playing', { engine: 'neural-webaudio' });
+          if (typeof activeCallbacks.onResume === 'function') activeCallbacks.onResume();
+          return true;
+        }
+        return false;
+      }
+
+      if (activeMode === 'speech-synthesis' && synthApi && typeof synthApi.resume === 'function') {
+        try {
+          synthApi.resume();
+          emitStateChange('playing', { engine: 'speech-synthesis' });
+          if (typeof activeCallbacks.onResume === 'function') activeCallbacks.onResume();
+          return true;
+        } catch (_) {
+          return false;
+        }
+      }
+
+      return false;
     }
 
     function speak(noteObj, callbacks = {}) {
@@ -309,54 +831,62 @@
 
       stop();
 
-      const textToRead = [noteObj.title, noteObj.message, noteObj.signOff].filter(Boolean).join('. ');
-      const utterance = new window.SpeechSynthesisUtterance(textToRead);
-      const preferredVoice = pickGentleVoice(window.speechSynthesis);
-      if (preferredVoice) {
-        utterance.voice = preferredVoice;
-      }
-      utterance.lang = (preferredVoice && preferredVoice.lang) || 'en-US';
-      utterance.rate = 0.88;
-      utterance.pitch = 1.06;
-      utterance.volume = 0.92;
-
-      utterance.onstart = () => {
-        speaking = true;
-        if (typeof callbacks.onStart === 'function') callbacks.onStart();
-      };
-
-      utterance.onend = () => {
-        if (activeUtterance !== utterance) return;
-        speaking = false;
-        activeUtterance = null;
-        if (typeof callbacks.onEnd === 'function') callbacks.onEnd();
-      };
-
-      utterance.onerror = () => {
-        if (activeUtterance !== utterance) return;
-        speaking = false;
-        activeUtterance = null;
-        if (typeof callbacks.onError === 'function') callbacks.onError();
-      };
-
-      activeUtterance = utterance;
-      speaking = true;
-      try {
-        window.speechSynthesis.speak(utterance);
-        if (typeof callbacks.onStart === 'function') callbacks.onStart();
-        return true;
-      } catch (_) {
-        speaking = false;
-        activeUtterance = null;
-        if (typeof callbacks.onError === 'function') callbacks.onError();
+      const runId = ++activeRunId;
+      activeCallbacks = { ...callbacks, noteObj };
+      const textToRead = normalizeSpeechText(noteObj);
+      if (!textToRead) {
+        if (typeof callbacks.onError === 'function') callbacks.onError(new Error('Empty note text'));
         return false;
       }
+
+      if (!hasNeuralTtsSupport()) {
+        return speakWithSystemSpeech(textToRead, runId, true);
+      }
+
+      unlockAudioContextGesture();
+      emitStateChange('loading', { engine: 'piper-wasm' });
+      if (typeof callbacks.onLoading === 'function') callbacks.onLoading();
+
+      const cacheKey = `${piperConfig.voiceId}::${textToRead}`;
+      const cachedWav = wavCache.get(cacheKey);
+      if (cachedWav) {
+        playWavBuffer(cachedWav.slice(0), runId).catch(() => {
+          if (runId === activeRunId) {
+            speakWithSystemSpeech(textToRead, runId, true);
+          }
+        });
+        return true;
+      }
+
+      synthesizeViaWorker(textToRead, runId, callbacks.onProgress)
+        .then((res) => {
+          if (runId !== activeRunId) return;
+
+          // Keep a compact in-memory cache (up to 8 synthesized notes) for instant replay
+          if (wavCache.size >= 8) {
+            const oldestKey = wavCache.keys().next().value;
+            wavCache.delete(oldestKey);
+          }
+          wavCache.set(cacheKey, res.wavBuffer.slice(0));
+
+          return playWavBuffer(res.wavBuffer, runId);
+        })
+        .catch(() => {
+          if (runId !== activeRunId) return;
+          speakWithSystemSpeech(textToRead, runId, true);
+        });
+
+      return true;
     }
 
     return {
       isSupported,
-      isSpeaking: () => speaking,
+      isSpeaking: () => state === 'loading' || state === 'playing' || state === 'paused',
+      isPaused: () => state === 'paused',
+      getState: () => state,
       speak,
+      pause,
+      resume,
       stop
     };
   }

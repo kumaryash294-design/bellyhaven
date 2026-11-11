@@ -1,4 +1,5 @@
-const CACHE_NAME = 'bellyhaven-v18';
+const CACHE_NAME = 'bellyhaven-v19';
+const TTS_CACHE_NAME = 'bellyhaven-tts-assets-v1';
 const ASSETS = [
   './',
   './index.html',
@@ -52,11 +53,50 @@ const ASSETS = [
   './js/care-plan.js',
   './js/sound-machine.js',
   './js/baby-notes.js',
+  './js/piper-worker.js',
   './js/weight-tracker.js',
   './js/birth-plan.js',
   './js/blossom-paywall.js',
   './js/app.js'
 ];
+
+const TTS_ASSET_EXTENSIONS = ['.wasm', '.onnx', '.onnx.json', '.json', '.data', '.js', '.mjs'];
+
+function isNeuralTtsUrl(requestUrl) {
+  try {
+    const parsed = new URL(requestUrl);
+    const host = parsed.hostname.toLowerCase();
+    const path = parsed.pathname.toLowerCase();
+
+    const trustedHost =
+      host === 'cdn.jsdelivr.net' ||
+      host === 'cdnjs.cloudflare.com' ||
+      host === 'huggingface.co' ||
+      host.endsWith('.hf.co') ||
+      parsed.origin === self.location.origin;
+
+    if (!trustedHost) return false;
+    if (path.endsWith('/+esm')) return true;
+    return TTS_ASSET_EXTENSIONS.some((ext) => path.endsWith(ext)) && parsed.origin !== self.location.origin;
+  } catch (_) {
+    return false;
+  }
+}
+
+function getNormalizedTtsMime(requestUrl, currentType) {
+  try {
+    const path = new URL(requestUrl).pathname.toLowerCase();
+    if (path.endsWith('.wasm')) return 'application/wasm';
+    if (path.endsWith('.onnx') || path.endsWith('.data')) return 'application/octet-stream';
+    if (path.endsWith('.json')) return 'application/json';
+    if (path.endsWith('.mjs') || path.endsWith('.js') || path.endsWith('/+esm')) {
+      return 'application/javascript; charset=utf-8';
+    }
+  } catch (_) {
+    // Ignore URL parse error
+  }
+  return currentType || 'application/octet-stream';
+}
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -70,7 +110,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((keys) =>
       Promise.all(
         keys
-          .filter((key) => key !== CACHE_NAME)
+          .filter((key) => key !== CACHE_NAME && key !== TTS_CACHE_NAME)
           .map((key) => caches.delete(key))
       )
     )
@@ -80,6 +120,43 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
+
+  if (isNeuralTtsUrl(event.request.url)) {
+    event.respondWith(
+      caches.open(TTS_CACHE_NAME).then((ttsCache) =>
+        ttsCache.match(event.request).then((cached) => {
+          if (cached) return cached;
+          return fetch(event.request).then((response) => {
+            if (!response || response.status !== 200 || (response.type !== 'basic' && response.type !== 'cors')) {
+              return response;
+            }
+            const expectedMime = getNormalizedTtsMime(event.request.url, response.headers.get('Content-Type'));
+            const currentMime = (response.headers.get('Content-Type') || '').toLowerCase();
+            if (currentMime.startsWith(expectedMime.split(';')[0])) {
+              event.waitUntil(ttsCache.put(event.request, response.clone()).catch(() => {}));
+            } else {
+              const headers = new Headers(response.headers);
+              headers.set('Content-Type', expectedMime);
+              event.waitUntil(
+                response.clone().arrayBuffer().then((buf) =>
+                  ttsCache.put(
+                    event.request,
+                    new Response(buf, {
+                      status: response.status,
+                      statusText: response.statusText,
+                      headers
+                    })
+                  )
+                ).catch(() => {})
+              );
+            }
+            return response;
+          });
+        })
+      )
+    );
+    return;
+  }
 
   event.respondWith(
     caches.match(event.request).then((cached) => {
