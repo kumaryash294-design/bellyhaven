@@ -12,6 +12,7 @@
   const PREVIOUS_STORAGE_KEY = 'pregnancy_tracker_state_v1';
   const CYCLE_STORAGE_KEY = 'bellyhaven_cycle_length';
   const CYCLE_CLEANUP_FLAG_KEY = 'bellyhaven_cycle_reset_v1';
+  const USER_NAME_KEY = 'bellyhaven_user_name';
   const LEGACY_LMP_KEY = 'user_lmp';
   const LEGACY_KICK_KEY = 'kick_count';
 
@@ -348,10 +349,35 @@
     return safeStorageSet(storage, STORAGE_KEY, JSON.stringify(clean));
   }
 
+  function sanitizeUserName(rawName) {
+    if (typeof rawName !== 'string') return '';
+    return rawName.replace(/\s+/g, ' ').trim().slice(0, 40);
+  }
+
+  function loadUserName(storage = getDefaultStorage()) {
+    return sanitizeUserName(safeStorageGet(storage, USER_NAME_KEY) || '');
+  }
+
+  function saveUserName(rawName, storage = getDefaultStorage()) {
+    const clean = sanitizeUserName(rawName);
+    if (!clean) {
+      safeStorageRemove(storage, USER_NAME_KEY);
+      return '';
+    }
+    safeStorageSet(storage, USER_NAME_KEY, clean);
+    return clean;
+  }
+
+  function clearUserName(storage = getDefaultStorage()) {
+    safeStorageRemove(storage, USER_NAME_KEY);
+    return '';
+  }
+
   function clearAllState(storage = getDefaultStorage()) {
     safeStorageRemove(storage, STORAGE_KEY);
     safeStorageRemove(storage, PREVIOUS_STORAGE_KEY);
     safeStorageRemove(storage, CYCLE_STORAGE_KEY);
+    safeStorageRemove(storage, USER_NAME_KEY);
     safeStorageRemove(storage, LEGACY_LMP_KEY);
     safeStorageRemove(storage, LEGACY_KICK_KEY);
     return createDefaultState();
@@ -460,9 +486,14 @@
 
   return {
     STORAGE_KEY,
+    USER_NAME_KEY,
     createDefaultState,
     createId,
     sanitizeState,
+    sanitizeUserName,
+    loadUserName,
+    saveUserName,
+    clearUserName,
     loadState,
     saveState,
     clearAllState,

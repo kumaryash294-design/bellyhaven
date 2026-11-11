@@ -99,6 +99,12 @@
     <main class="main-content">
       <!-- TAB 1: PROGRESS -->
       <section id="tab-progress" class="tab-panel" role="tabpanel" aria-labelledby="nav-progress">
+        <!-- Personalized Time-Aware Greeting Banner -->
+        <div id="progress-greeting-banner" class="progress-greeting-banner" role="region" aria-label="Personal welcome">
+          <p id="progress-greeting-heading" class="progress-greeting-heading">Hello, Mama &#128149;</p>
+          <p class="progress-greeting-sub">Your calm, private companion &mdash; stored only on this device.</p>
+        </div>
+
         <!-- Dashboard Hero + Baby Size Card (Displayed ABOVE Details once saved) -->
         <div id="progress-dashboard-card" class="card dashboard-card" hidden>
           <div class="card-header-row">
@@ -229,6 +235,11 @@
           </div>
 
           <form id="date-setup-form" novalidate>
+            <div class="form-row">
+              <label for="setup-user-name">Your Name (optional)</label>
+              <input type="text" id="setup-user-name" placeholder="e.g. Karen" maxlength="40" autocomplete="given-name">
+            </div>
+
             <div class="form-row">
               <label id="date-input-label" for="primary-date-input">Last Menstrual Period (LMP)</label>
               <input type="date" id="primary-date-input" required>
@@ -728,6 +739,14 @@
       </div>
 
       <hr class="divider">
+
+      <div class="form-row">
+        <label for="settings-user-name">Your Name</label>
+        <div class="btn-group">
+          <input type="text" id="settings-user-name" placeholder="e.g. Karen" maxlength="40" autocomplete="given-name">
+          <button type="button" id="save-user-name-btn" class="btn btn-secondary" style="width: auto; white-space: nowrap;">Save</button>
+        </div>
+      </div>
 
       <div class="form-row">
         <label for="settings-doctor-phone">OB-GYN / Hospital Emergency Contact</label>

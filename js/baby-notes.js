@@ -247,13 +247,22 @@
     }
   };
 
-  function getBabyNote(week) {
+  function getBabyNote(week, userName) {
     const num = Number.parseInt(week, 10);
     const clamped = Number.isFinite(num) ? Math.max(4, Math.min(42, num)) : 4;
     const entry = BABY_NOTES[clamped] || BABY_NOTES[4];
+    const cleanName = typeof userName === 'string' ? userName.replace(/\s+/g, ' ').trim().slice(0, 40) : '';
+    let title = entry.title;
+    if (cleanName) {
+      if (/^Hello,\s*Mama\b/i.test(entry.title)) {
+        title = `Hello, Mama ${cleanName}`;
+      } else {
+        title = `Hello, Mama ${cleanName} — ${entry.title}`;
+      }
+    }
     return {
       week: clamped,
-      title: entry.title,
+      title,
       message: entry.message,
       signOff: entry.signOff
     };

@@ -95,6 +95,8 @@
     };
 
     // Progress Dashboard, Milestones & Setup
+    dom.progressGreetingBanner = $('progress-greeting-banner');
+    dom.progressGreetingHeading = $('progress-greeting-heading');
     dom.progressDashboardCard = $('progress-dashboard-card');
     dom.trimesterBadge = $('trimester-badge');
     dom.heroStagePill = $('hero-stage-pill');
@@ -132,6 +134,7 @@
     dom.lmpVal = $('lmp-val');
 
     dom.dateSetupCard = $('date-setup-card');
+    dom.setupUserName = $('setup-user-name');
     dom.dateModeButtons = Array.from(document.querySelectorAll('[data-date-mode]'));
     dom.dateSetupForm = $('date-setup-form');
     dom.dateInputLabel = $('date-input-label');
@@ -235,6 +238,8 @@
     // Settings Modal
     dom.settingsModal = $('settings-modal');
     dom.closeSettingsBtn = $('close-settings-btn');
+    dom.settingsUserName = $('settings-user-name');
+    dom.saveUserNameBtn = $('save-user-name-btn');
     dom.settingsDoctorPhone = $('settings-doctor-phone');
     dom.saveDoctorPhoneBtn = $('save-doctor-phone-btn');
     dom.exportJsonBtn = $('export-json-btn');
@@ -513,10 +518,70 @@
     return (!isNaN(parsed) && parsed >= 20 && parsed <= 45) ? parsed : 28;
   }
 
+  function getSavedUserName() {
+    if (store && typeof store.loadUserName === 'function') {
+      return store.loadUserName();
+    }
+    try {
+      return String(localStorage.getItem('bellyhaven_user_name') || '').trim().slice(0, 40);
+    } catch (_) {
+      return '';
+    }
+  }
+
+  function saveUserNamePreference(rawName) {
+    if (store && typeof store.saveUserName === 'function') {
+      return store.saveUserName(rawName);
+    }
+    const clean = String(rawName || '').replace(/\s+/g, ' ').trim().slice(0, 40);
+    try {
+      if (clean) {
+        localStorage.setItem('bellyhaven_user_name', clean);
+      } else {
+        localStorage.removeItem('bellyhaven_user_name');
+      }
+    } catch (_) {}
+    return clean;
+  }
+
+  function getTimeBasedGreeting(name, now = new Date()) {
+    const clean = (store && typeof store.sanitizeUserName === 'function')
+      ? store.sanitizeUserName(name)
+      : String(name || '').trim().slice(0, 40);
+    if (!clean) {
+      return 'Hello, Mama 💕';
+    }
+    const hour = (now instanceof Date ? now : new Date()).getHours();
+    if (hour >= 5 && hour < 12) {
+      return `Good morning, ${clean} 🌸`;
+    }
+    if (hour >= 12 && hour < 17) {
+      return `Good afternoon, ${clean} ✨`;
+    }
+    return `Good evening, ${clean} 💕`;
+  }
+
+  function syncUserNameInputs(name = getSavedUserName()) {
+    if (dom.setupUserName && dom.setupUserName.value !== name) {
+      dom.setupUserName.value = name;
+    }
+    if (dom.settingsUserName && dom.settingsUserName.value !== name) {
+      dom.settingsUserName.value = name;
+    }
+  }
+
+  function renderGreetingBanner() {
+    if (!dom.progressGreetingHeading) return;
+    const name = getSavedUserName();
+    dom.progressGreetingHeading.textContent = getTimeBasedGreeting(name);
+  }
+
   function renderProgress() {
     const normalizedCycle = calc.normalizeCycleLength(state.profile.cycleLength || 28);
     state.profile.cycleLength = normalizedCycle;
     dom.cycleLengthInput.value = normalizedCycle;
+    renderGreetingBanner();
+    syncUserNameInputs();
     const stats = getCurrentStats();
 
     if (!stats || !stats.valid) {
@@ -588,6 +653,10 @@
     state.profile.inputMode = activeDateMode;
     state.profile.dateStr = dateStr;
     state.profile.cycleLength = cycleLength;
+    if (dom.setupUserName) {
+      saveUserNamePreference(dom.setupUserName.value);
+      syncUserNameInputs();
+    }
     previewMilestoneWeek = null;
     lastRenderedMilestoneWeek = null;
     persist();
@@ -600,6 +669,8 @@
   function handleClearDate() {
     state.profile.dateStr = '';
     state.profile.cycleLength = 28;
+    saveUserNamePreference('');
+    syncUserNameInputs('');
     dom.primaryDateInput.value = '';
     dom.cycleLengthInput.value = 28;
     dom.dateError.hidden = true;
@@ -2184,7 +2255,7 @@
 
   function renderBabyNoteCard(week) {
     if (!dom.babyNoteCard || !babyNotesMod) return;
-    const note = babyNotesMod.getBabyNote(week);
+    const note = babyNotesMod.getBabyNote(week, getSavedUserName());
     if (activeNoteWeek !== null && activeNoteWeek !== note.week && speechReader && speechReader.isSpeaking()) {
       speechReader.stop();
       setBabyNoteListenState('idle');
@@ -2229,7 +2300,7 @@
     }
 
     const week = activeNoteWeek || 4;
-    const note = babyNotesMod.getBabyNote(week);
+    const note = babyNotesMod.getBabyNote(week, getSavedUserName());
     const started = speechReader.speak(note, {
       onLoading: () => setBabyNoteListenState('loading'),
       onStart: () => setBabyNoteListenState('playing'),
@@ -2512,6 +2583,7 @@
 
   function openSettingsModal() {
     dom.resetConfirmBox.hidden = true;
+    if (dom.settingsUserName) dom.settingsUserName.value = getSavedUserName();
     dom.settingsDoctorPhone.value = state.profile.emergencyPhone || '';
     renderBlossomUi();
     dom.settingsModal.hidden = false;
@@ -3441,6 +3513,33 @@
       }
     });
 
+    function handleSaveSettingsName() {
+      if (!dom.settingsUserName) return;
+      const saved = saveUserNamePreference(dom.settingsUserName.value);
+      syncUserNameInputs(saved);
+      if (speechReader && speechReader.isSpeaking()) {
+        speechReader.stop();
+        setBabyNoteListenState('idle');
+      }
+      renderGreetingBanner();
+      if (activeNoteWeek !== null) {
+        renderBabyNoteCard(activeNoteWeek);
+      }
+      showToast(saved ? `Name updated to ${saved}` : 'Saved name cleared');
+    }
+
+    if (dom.saveUserNameBtn) {
+      dom.saveUserNameBtn.addEventListener('click', handleSaveSettingsName);
+    }
+    if (dom.settingsUserName) {
+      dom.settingsUserName.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          handleSaveSettingsName();
+        }
+      });
+    }
+
     dom.saveDoctorPhoneBtn.addEventListener('click', () => {
       state.profile.emergencyPhone = dom.settingsDoctorPhone.value.trim().slice(0, 30);
       persist();
@@ -3534,6 +3633,7 @@
       dom.contractionIntensityGroup.querySelectorAll('.choice-chip').forEach((c) => c.classList.remove('is-selected'));
       dom.primaryDateInput.value = '';
       dom.cycleLengthInput.value = 28;
+      syncUserNameInputs('');
       dom.aiDoctorQuestionsCard.hidden = true;
       lastGeneratedDoctorQuestions = '';
       renderAll();

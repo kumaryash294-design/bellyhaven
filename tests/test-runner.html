@@ -442,6 +442,28 @@
         }
       });
 
+      test('baby-notes and storage personalize Mama name cleanly under bellyhaven_user_name', () => {
+        assertEqual(store.USER_NAME_KEY, 'bellyhaven_user_name');
+        const memStore = new Map();
+        const mockStorage = {
+          getItem: (k) => (memStore.has(k) ? memStore.get(k) : null),
+          setItem: (k, v) => memStore.set(k, String(v)),
+          removeItem: (k) => memStore.delete(k)
+        };
+        assertEqual(store.saveUserName('  Karen   Marie  ', mockStorage), 'Karen Marie');
+        assertEqual(mockStorage.getItem('bellyhaven_user_name'), 'Karen Marie');
+        assertEqual(store.loadUserName(mockStorage), 'Karen Marie');
+
+        const w4 = babyNotesMod.getBabyNote(4, 'Karen');
+        assertEqual(w4.title, 'Hello, Mama Karen');
+        const w16 = babyNotesMod.getBabyNote(16, 'Karen');
+        assertTrue(w16.title.startsWith('Hello, Mama Karen'));
+
+        store.clearUserName(mockStorage);
+        assertEqual(store.loadUserName(mockStorage), '');
+        assertEqual(babyNotesMod.getBabyNote(4, '').title, 'Hello, Mama');
+      });
+
       test('baby-notes Neural TTS speech reader supports tuning -> playing -> pause -> resume -> reset & memory cache', async () => {
         const events = [];
         let workerCalls = 0;
