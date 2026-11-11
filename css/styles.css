@@ -3010,13 +3010,14 @@ a:focus-visible,
 /* ---------------- SETTINGS BLOSSOM CARD ---------------- */
 .settings-blossom-card {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: stretch;
   gap: 12px;
-  padding: 13px 14px;
+  padding: 16px;
   border-radius: 16px;
   background: linear-gradient(135deg, #FFF5F6 0%, #FDF8EE 100%);
   border: 1px solid rgba(232, 180, 184, 0.85);
+  box-shadow: 0 6px 18px rgba(166, 61, 91, 0.06);
 }
 
 .settings-blossom-card.is-unlocked {
@@ -3024,47 +3025,89 @@ a:focus-visible,
   border-color: rgba(143, 184, 152, 0.75);
 }
 
-.settings-blossom-meta {
-  min-width: 0;
-  flex: 1;
+.settings-blossom-card.is-unlocked .settings-blossom-badge {
+  background: linear-gradient(135deg, #6b9974 0%, #588461 100%);
+  border-color: rgba(74, 118, 83, 0.35);
 }
 
 .settings-blossom-title-row {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
-  margin-bottom: 4px;
-  color: #4A4E69;
-  font-size: 14.5px;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  color: #3d354b;
+  font-size: 15.5px;
+  line-height: 1.3;
 }
 
+.settings-blossom-title {
+  font-weight: 700;
+  min-width: 0;
+}
+
+.settings-blossom-badge {
+  flex-shrink: 0;
+  align-self: flex-start;
+}
+
+.settings-blossom-desc,
 .settings-blossom-meta .helper-text {
   margin: 0;
-  font-size: 12px;
+  width: 100%;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #5b5e78;
 }
 
 .blossom-cta-btn {
-  width: auto;
-  flex: 0 0 auto;
-  padding: 10px 14px;
-  border-radius: 12px;
-  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 13px 18px;
+  border-radius: 13px;
+  font-size: 14px;
   font-weight: 700;
-  color: #fff;
+  color: #ffffff;
   background: linear-gradient(135deg, #C95A78 0%, #D86B85 100%);
-  box-shadow: 0 6px 14px rgba(201, 90, 120, 0.28);
+  box-shadow: 0 8px 18px rgba(201, 90, 120, 0.28);
+  cursor: pointer;
   white-space: nowrap;
+  transition: transform 0.14s ease, box-shadow 0.16s ease, background 0.16s ease;
 }
 
 .blossom-cta-btn:hover:not(:disabled) {
   background: linear-gradient(135deg, #b44765 0%, #C95A78 100%);
+  box-shadow: 0 10px 22px rgba(201, 90, 120, 0.34);
+  transform: translateY(-1px);
 }
 
-@media (max-width: 420px) {
+.blossom-cta-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.blossom-cta-btn:disabled {
+  background: linear-gradient(135deg, #749f7d 0%, #5f8c68 100%);
+  box-shadow: 0 4px 12px rgba(95, 140, 104, 0.22);
+  opacity: 0.92;
+  cursor: default;
+}
+
+@media (max-width: 380px) {
   .settings-blossom-card {
-    flex-direction: column;
-    align-items: stretch;
+    padding: 14px;
+    gap: 10px;
+  }
+
+  .settings-blossom-title-row {
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+
+  .blossom-cta-btn {
+    padding: 12px 14px;
+    font-size: 13.5px;
   }
 }
 
