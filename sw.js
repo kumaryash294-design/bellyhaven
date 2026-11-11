@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bellyhaven-v16';
+const CACHE_NAME = 'bellyhaven-v17';
 const ASSETS = [
   './',
   './index.html',

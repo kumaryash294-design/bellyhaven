@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#b5838d">
+  <meta name="theme-color" content="#C95A78">
   <meta name="application-name" content="BellyHaven">
   <meta name="apple-mobile-web-app-title" content="BellyHaven">
   <meta name="description" content="BellyHaven: Your private, offline-first pregnancy companion with clinical kick counting, contraction timing, and Haven AI support.">
@@ -15,6 +15,22 @@
   <link rel="stylesheet" href="./css/styles.css">
 </head>
 <body>
+  <!-- App Splash Screen Overlay -->
+  <div id="splash-screen" class="splash-screen" role="status" aria-label="Loading BellyHaven">
+    <div class="splash-content">
+      <div class="splash-logo-wrap">
+        <img src="./icons/icon-512.png" alt="BellyHaven logo" class="splash-logo" width="112" height="112">
+      </div>
+      <h2 class="splash-title">BellyHaven</h2>
+      <p class="splash-quote">&ldquo;Every heartbeat tells a story of love.&rdquo;</p>
+      <div class="splash-loader" aria-hidden="true">
+        <span class="splash-dot"></span>
+        <span class="splash-dot"></span>
+        <span class="splash-dot"></span>
+      </div>
+    </div>
+  </div>
+
   <div class="app-shell">
     <header class="app-header">
       <div class="brand">
@@ -1122,5 +1138,29 @@
   <script src="./js/birth-plan.js"></script>
   <script src="./js/blossom-paywall.js"></script>
   <script src="./js/app.js"></script>
+  <script>
+    (function () {
+      var splash = document.getElementById('splash-screen');
+      if (!splash) return;
+      var dismissed = false;
+      function hideSplash() {
+        if (dismissed) return;
+        dismissed = true;
+        splash.classList.add('is-fading');
+        splash.setAttribute('aria-hidden', 'true');
+        window.setTimeout(function () {
+          splash.classList.add('is-gone');
+        }, 580);
+      }
+      function scheduleFade() {
+        window.setTimeout(hideSplash, 1500);
+      }
+      if (document.readyState === 'complete') {
+        scheduleFade();
+      } else {
+        window.addEventListener('load', scheduleFade, { once: true });
+      }
+    })();
+  </script>
 </body>
 </html>
