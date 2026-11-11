@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#b5838d">
+  <meta name="application-name" content="BellyHaven">
+  <meta name="apple-mobile-web-app-title" content="BellyHaven">
+  <meta name="description" content="BellyHaven: Your private, offline-first pregnancy companion with clinical kick counting, contraction timing, and Haven AI support.">
+  <title>BellyHaven — Private Pregnancy Companion</title>
+  <link rel="manifest" href="./manifest.json">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
+  <link rel="icon" type="image/svg+xml" href="./icons/icon.svg">
+  <link rel="stylesheet" href="./css/styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="brand">
+        <span class="header-icon">
+          <img src="./icons/icon-192.png" alt="" class="brand-icon" width="38" height="38">
+        </span>
+        <div>
+          <h1 class="app-title">BellyHaven</h1>
+          <p class="app-subtitle">Private, offline-ready companion</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <span id="header-stage-badge" class="stage-badge">Set date</span>
+        <button
+          type="button"
+          id="open-care-plan-btn"
+          class="icon-btn icon-btn-rose"
+          aria-label="Open Emergency and Care Plan"
+          title="Emergency &amp; Care Plan"
+        >
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 21s-7-4.5-9-9.5C1.5 7.8 4.2 4 8 4c2 0 3.3 1 4 2.2C12.7 5 14 4 16 4c3.8 0 6.5 3.8 5 7.5-2 5-9 9.5-9 9.5z"></path>
+            <line x1="12" y1="8.5" x2="12" y2="14.5"></line>
+            <line x1="9" y1="11.5" x2="15" y2="11.5"></line>
+          </svg>
+        </button>
+        <button
+          type="button"
+          id="open-settings-btn"
+          class="icon-btn"
+          aria-label="Open data, emergency contact, and backup settings"
+          title="Settings &amp; Backup"
+        >
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Subtle PWA Install Banner (shown on beforeinstallprompt) -->
+    <div id="install-banner" class="install-banner" hidden>
+      <div class="install-banner-content">
+        <span class="install-banner-icon">
+          <img src="./icons/icon-192.png" alt="" width="34" height="34">
+        </span>
+        <div>
+          <strong>Install BellyHaven</strong>
+          <span>Add to your home screen for private, offline use</span>
+        </div>
+      </div>
+      <div class="install-banner-actions">
+        <button type="button" id="install-app-btn" class="btn btn-primary btn-sm">Install App</button>
+        <button type="button" id="dismiss-install-btn" class="text-btn" aria-label="Dismiss install banner">Not now</button>
+      </div>
+    </div>
+
+    <main class="main-content">
+      <!-- TAB 1: PROGRESS -->
+      <section id="tab-progress" class="tab-panel" role="tabpanel" aria-labelledby="nav-progress">
+        <!-- Dashboard Hero + Baby Size Card (Displayed ABOVE Details once saved) -->
+        <div id="progress-dashboard-card" class="card dashboard-card" hidden>
+          <div class="card-header-row">
+            <span id="trimester-badge" class="trimester-badge">1st Trimester</span>
+            <span id="hero-stage-pill" class="stage-pill-muted">0w 0d</span>
+          </div>
+
+          <div class="hero-ring-block">
+            <div class="ring-wrapper">
+              <svg class="progress-ring" viewBox="0 0 140 140" role="img" aria-label="Pregnancy progress toward 40 weeks">
+                <circle class="ring-track" cx="70" cy="70" r="56"></circle>
+                <circle id="progress-ring-fill" class="ring-fill" cx="70" cy="70" r="56"></circle>
+              </svg>
+              <div class="ring-center">
+                <strong id="hero-week-title" class="hero-week-title">Week 0</strong>
+                <span id="hero-percent-label" class="hero-percent-label">0% of 40w</span>
+              </div>
+            </div>
+            <p id="hero-summary-line" class="hero-summary-line">Week 0 (0%)</p>
+            <p id="hero-countdown-line" class="hero-countdown-line">280 days remaining</p>
+          </div>
+        </div>
+
+        <!-- Dynamic Baby Size Milestone Visual Card -->
+        <div id="milestone-card" class="card milestone-visual-card" hidden>
+          <div class="card-header-row">
+            <div>
+              <span class="eyebrow">Baby Size Milestone</span>
+              <h3 id="milestone-name" class="milestone-title">-</h3>
+            </div>
+            <div class="week-stepper" aria-label="Browse weekly milestones">
+              <button type="button" id="milestone-prev-week" class="stepper-btn" aria-label="Previous week">&lsaquo;</button>
+              <span id="milestone-week-label" class="week-label">Week 0</span>
+              <button type="button" id="milestone-next-week" class="stepper-btn" aria-label="Next week">&rsaquo;</button>
+              <button type="button" id="milestone-reset-week" class="chip-btn" hidden>Current</button>
+            </div>
+          </div>
+
+          <div class="milestone-hero-row">
+            <div id="milestone-illustration" class="milestone-illustration">
+              <img
+                id="milestone-image"
+                class="milestone-image"
+                src="./icons/milestones/poppy-seed.svg"
+                alt="Baby size illustration"
+                width="68"
+                height="68"
+                decoding="async"
+              >
+            </div>
+            <div class="milestone-metrics-col">
+              <div class="metric-pill">
+                <span class="metric-label">Approx. Length</span>
+                <strong id="milestone-length">-</strong>
+              </div>
+              <div class="metric-pill">
+                <span class="metric-label">Approx. Weight</span>
+                <strong id="milestone-weight">-</strong>
+              </div>
+            </div>
+          </div>
+
+          <p id="milestone-tip" class="milestone-tip"></p>
+        </div>
+
+        <!-- A Note from Baby Weekly Emotional Milestone Card -->
+        <article id="baby-note-card" class="card baby-note-parchment" hidden>
+          <div class="card-header-row baby-note-header">
+            <div class="baby-note-title-wrap">
+              <span id="baby-note-week-pill" class="baby-note-week-pill">Week 4</span>
+              <h3>A Note from Baby &#128140;</h3>
+            </div>
+            <button
+              type="button"
+              id="baby-note-listen-btn"
+              class="listen-btn"
+              aria-pressed="false"
+              aria-label="Listen to A Note from Baby"
+            >
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+              </svg>
+              <span id="baby-note-listen-label">Listen</span>
+            </button>
+          </div>
+          <p id="baby-note-title" class="baby-note-salutation"></p>
+          <blockquote id="baby-note-message" class="baby-note-body"></blockquote>
+          <p id="baby-note-signoff" class="baby-note-signoff"></p>
+        </article>
+
+        <!-- Gestational Details Summary -->
+        <div id="progress-results" class="card" hidden>
+          <h3>Gestational Details</h3>
+          <div class="hero-stats">
+            <div class="stat-row">
+              <span>Estimated Due Date</span>
+              <strong id="edd-val">-</strong>
+            </div>
+            <div class="stat-row">
+              <span>Current Stage</span>
+              <strong id="weeks-val">-</strong>
+            </div>
+            <div class="stat-row">
+              <span>Trimester</span>
+              <strong id="trimester-val">-</strong>
+            </div>
+            <div class="stat-row">
+              <span>Calculated LMP</span>
+              <strong id="lmp-val">-</strong>
+            </div>
+          </div>
+          <button type="button" id="progress-export-report-btn" class="btn care-btn-outline" style="margin-top: 14px;">Export Doctor Report</button>
+        </div>
+
+        <!-- LMP / EDD Setup Card -->
+        <div class="card" id="date-setup-card">
+          <div class="card-header-row">
+            <h2>Date Setup</h2>
+          </div>
+
+          <div class="segmented-control" role="group" aria-label="Date calculation method">
+            <button type="button" class="segment-btn is-active" data-date-mode="lmp">Last Period (LMP)</button>
+            <button type="button" class="segment-btn" data-date-mode="edd">Known Due Date</button>
+          </div>
+
+          <form id="date-setup-form" novalidate>
+            <div class="form-row">
+              <label id="date-input-label" for="primary-date-input">Last Menstrual Period (LMP)</label>
+              <input type="date" id="primary-date-input" required>
+            </div>
+
+            <div class="form-row cycle-row" id="cycle-length-group">
+              <label for="cycleLength">Average Cycle Length (days)</label>
+              <div class="inline-number-field">
+                <input type="number" id="cycleLength" value="28" min="20" max="45" placeholder="28">
+                <span class="field-hint">20–45 (standard: 28)</span>
+              </div>
+            </div>
+
+            <p id="date-error" class="inline-error" role="alert" hidden></p>
+
+            <div class="btn-group">
+              <button type="submit" class="btn btn-primary">Save Date</button>
+              <button type="button" id="clear-date-btn" class="btn btn-secondary">Clear</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Emergency & Care Plan Quick Entry Card (Main Dashboard) -->
+        <div id="care-plan-entry-card" class="card care-entry-card">
+          <div class="card-header-row">
+            <div>
+              <span class="eyebrow">Birth Readiness &amp; Safety</span>
+              <h3>Emergency &amp; Care Plan</h3>
+            </div>
+            <span id="dashboard-bag-pill" class="care-pill">0 of 19 packed</span>
+          </div>
+          <p id="dashboard-care-summary" class="helper-text">Save your OB-GYN contacts, hospital bag checklist, and clinical warning signs offline.</p>
+          <div class="care-entry-actions">
+            <button type="button" id="dashboard-open-care-plan-btn" class="btn care-btn-rose">Open Care Plan</button>
+            <a id="dashboard-call-doctor-link" class="btn care-btn-outline" role="button">Call Doctor</a>
+            <button type="button" id="dashboard-red-flags-btn" class="btn btn-ghost">Warning Signs</button>
+          </div>
+        </div>
+
+        <!-- Interactive Birth Plan Builder Card (Main Dashboard) -->
+        <div id="birth-plan-entry-card" class="card care-entry-card birth-plan-entry-card">
+          <div class="card-header-row">
+            <div>
+              <span class="eyebrow">Birth Readiness &amp; Safety</span>
+              <h3>Interactive Birth Plan Builder</h3>
+            </div>
+            <span id="dashboard-birth-plan-pill" class="care-pill care-pill-subtle">0 selected</span>
+          </div>
+          <p id="dashboard-birth-plan-summary" class="helper-text">Curate your labor atmosphere, pain comfort, delivery room, and newborn preferences — formatted into a clean 1-page hospital printout.</p>
+          <div class="luxury-tools-grid">
+            <button type="button" id="dashboard-open-birth-plan-btn" class="btn care-btn-rose">Customize Birth Plan</button>
+            <button type="button" id="dashboard-export-birth-plan-btn" class="btn care-btn-outline">Export Birth Plan (Print / PDF)</button>
+          </div>
+        </div>
+
+        <!-- Luxury Comfort & Partner Tools Card -->
+        <div id="luxury-tools-card" class="card luxury-tools-card">
+          <div class="card-header-row">
+            <div>
+              <span class="eyebrow">Calm &amp; Connection</span>
+              <h3>Haven Studio &amp; Partner Share</h3>
+            </div>
+            <span id="dashboard-sound-status" class="care-pill care-pill-subtle">Offline Audio</span>
+          </div>
+          <p class="helper-text">Relax with synthetic womb sounds, 4-7-8 breathing, or send baby's latest milestone update.</p>
+          <div class="luxury-tools-grid">
+            <button type="button" id="open-sound-machine-btn" class="btn care-btn-outline">Haven Sound Machine</button>
+            <button type="button" id="open-partner-share-btn" class="btn care-btn-rose">Share Update with Partner &#128140;</button>
+          </div>
+        </div>
+
+        <div class="disclaimer-box">
+          <strong>Informational Only:</strong> Due dates and size milestones are standard estimates and do not replace clinical advice from your healthcare provider.
+        </div>
+      </section>
+
+      <!-- TAB 2: KICK COUNTER -->
+      <section id="tab-kicks" class="tab-panel" role="tabpanel" aria-labelledby="nav-kicks" hidden>
+        <div class="card">
+          <div class="card-header-row">
+            <h2>Fetal Kick Counter</h2>
+          </div>
+
+          <div class="segmented-control" role="group" aria-label="Kick counter mode">
+            <button type="button" class="segment-btn is-active" data-kick-mode="session">Timed Session</button>
+            <button type="button" class="segment-btn" data-kick-mode="quick">Quick Counter</button>
+          </div>
+
+          <!-- Timed Session Mode -->
+          <div id="kick-session-view">
+            <p class="helper-text">Tap each distinct movement (kicks, flutters, or rolls). Many guidelines aim for 10 movements within 2 hours.</p>
+
+            <div class="session-stats-grid">
+              <div class="mini-stat">
+                <span>Elapsed</span>
+                <strong id="kick-session-timer" class="tabular">00:00</strong>
+              </div>
+              <div class="mini-stat">
+                <span>Movements</span>
+                <strong id="kick-session-count" class="tabular">0 / 10</strong>
+              </div>
+            </div>
+
+            <div class="linear-progress" aria-hidden="true">
+              <div id="kick-progress-fill" class="linear-progress-fill"></div>
+            </div>
+
+            <div class="tap-circle-wrap">
+              <button type="button" id="kick-session-tap-btn" class="tap-circle-btn">
+                <span class="tap-circle-plus">+ Kick</span>
+                <span class="tap-circle-sub">Tap on movement</span>
+              </button>
+            </div>
+
+            <div class="btn-group">
+              <button type="button" id="kick-undo-btn" class="btn btn-secondary" disabled>Undo</button>
+              <button type="button" id="kick-finish-btn" class="btn btn-primary" disabled>Save Session</button>
+              <button type="button" id="kick-discard-btn" class="btn btn-ghost" disabled>Reset</button>
+            </div>
+
+            <div id="kick-tap-log" class="tap-chips" aria-live="polite"></div>
+          </div>
+
+          <!-- Quick Counter Mode -->
+          <div id="kick-quick-view" hidden>
+            <p class="helper-text">Tap each time you feel movement for a running daily total.</p>
+            <div class="counter-display tabular" id="quick-kick-count">0</div>
+            <div class="btn-group">
+              <button type="button" id="quick-kick-add" class="btn btn-primary">+ Kick</button>
+              <button type="button" id="quick-kick-reset" class="btn btn-secondary">Reset</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header-row">
+            <h3>Saved Sessions</h3>
+            <button type="button" id="clear-kick-history-btn" class="text-btn">Clear History</button>
+          </div>
+          <div id="kick-sessions-list" class="history-list"></div>
+        </div>
+      </section>
+
+      <!-- TAB 3: CONTRACTION TIMER -->
+      <section id="tab-contractions" class="tab-panel" role="tabpanel" aria-labelledby="nav-contractions" hidden>
+        <!-- Prominent Clinical 5-1-1 Rule Alert Banner -->
+        <div id="contraction-511-banner" class="emergency-banner" role="alert" hidden>
+          <div class="emergency-banner-top">
+            <span class="emergency-badge">ACTIVE LABOR ALERT · 5-1-1</span>
+            <span id="contraction-511-metrics" class="emergency-metrics"></span>
+          </div>
+          <p class="emergency-banner-text">
+            Labor Pattern Detected (5-1-1 Rule Met) — Please notify your OB-GYN / Labor &amp; Delivery.
+          </p>
+          <div class="emergency-actions">
+            <button type="button" id="call-doctor-btn" class="btn btn-danger">Call Care Team</button>
+            <button type="button" id="dismiss-511-btn" class="btn btn-secondary">Dismiss Alert</button>
+          </div>
+          <div id="emergency-phone-inline" class="inline-phone-box" hidden>
+            <label for="inline-doctor-phone">Enter OB-GYN, Midwife, or Hospital Phone</label>
+            <div class="btn-group">
+              <input type="tel" id="inline-doctor-phone" placeholder="e.g. +1 555-0199" maxlength="30">
+              <button type="button" id="save-inline-phone-btn" class="btn btn-primary">Save &amp; Call</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="contraction-511-dismissed-pill" class="dismissed-alert-pill" hidden>
+          <span>5-1-1 pattern active (alert dismissed)</span>
+          <button type="button" id="reshow-511-btn" class="text-btn">Show Alert</button>
+        </div>
+
+        <div class="card">
+          <div class="card-header-row">
+            <h2>Contraction Timer</h2>
+            <button type="button" id="timer-open-sound-btn" class="chip-btn">Calm Sounds</button>
+          </div>
+          <p class="helper-text">Start when a contraction begins and stop when it fades. Intervals are measured start-to-start.</p>
+
+          <div class="contraction-clock-box">
+            <span id="contraction-status" class="status-pill">Ready to time</span>
+            <div id="contraction-timer" class="counter-display tabular">00:00</div>
+
+            <div class="intensity-picker">
+              <span class="field-label">Intensity (optional)</span>
+              <div id="contraction-intensity-group" class="chip-group chip-group-center" role="group" aria-label="Contraction intensity">
+                <button type="button" class="choice-chip" data-intensity="Mild">Mild</button>
+                <button type="button" class="choice-chip" data-intensity="Moderate">Moderate</button>
+                <button type="button" class="choice-chip" data-intensity="Strong">Strong</button>
+              </div>
+            </div>
+
+            <button type="button" id="contraction-toggle-btn" class="btn btn-primary btn-lg">Start Contraction</button>
+          </div>
+
+          <div class="metric-pills metric-pills-3">
+            <div class="metric-pill">
+              <span class="metric-label">Last Hour</span>
+              <strong id="contr-last-hour-count" class="tabular">0</strong>
+            </div>
+            <div class="metric-pill">
+              <span class="metric-label">Avg Duration</span>
+              <strong id="contr-avg-duration" class="tabular">-</strong>
+            </div>
+            <div class="metric-pill">
+              <span class="metric-label">Avg Interval</span>
+              <strong id="contr-avg-interval" class="tabular">-</strong>
+            </div>
+          </div>
+
+          <div id="contraction-analyzer-bar" class="contraction-analyzer-bar" data-phase="idle">
+            <span class="analyzer-dot" aria-hidden="true"></span>
+            <span id="contraction-analyzer-text">5-1-1 Analyzer: Log contractions to monitor for an active labor pattern.</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header-row">
+            <h3>Contraction Log</h3>
+            <button type="button" id="clear-contractions-btn" class="text-btn">Clear Log</button>
+          </div>
+          <div id="contractions-list" class="history-list"></div>
+        </div>
+      </section>
+
+      <!-- TAB 4: JOURNAL & APPOINTMENTS -->
+      <section id="tab-journal" class="tab-panel" role="tabpanel" aria-labelledby="nav-journal" hidden>
+        <div class="card">
+          <h2>Daily Check-In</h2>
+          <form id="journal-form">
+            <div class="form-grid-2">
+              <div class="form-row">
+                <label for="journal-date">Date</label>
+                <input type="date" id="journal-date" required>
+              </div>
+              <div class="form-row">
+                <label for="journal-weight">Weight (optional)</label>
+                <input type="text" id="journal-weight" placeholder="e.g. 64.5 kg" maxlength="20">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <label for="journal-bp">Blood Pressure (optional)</label>
+              <input type="text" id="journal-bp" placeholder="e.g. 118/76 mmHg" maxlength="24">
+            </div>
+
+            <div class="form-row">
+              <span class="field-label">Mood</span>
+              <div id="journal-mood-group" class="chip-group" role="group" aria-label="Mood">
+                <button type="button" class="choice-chip" data-mood="Great">Great</button>
+                <button type="button" class="choice-chip" data-mood="Calm">Calm</button>
+                <button type="button" class="choice-chip" data-mood="Tired">Tired</button>
+                <button type="button" class="choice-chip" data-mood="Sore">Sore</button>
+                <button type="button" class="choice-chip" data-mood="Anxious">Anxious</button>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <span class="field-label">Symptoms</span>
+              <div id="journal-symptoms-group" class="chip-group" role="group" aria-label="Symptoms">
+                <button type="button" class="choice-chip" data-symptom="Fatigue">Fatigue</button>
+                <button type="button" class="choice-chip" data-symptom="Nausea">Nausea</button>
+                <button type="button" class="choice-chip" data-symptom="Heartburn">Heartburn</button>
+                <button type="button" class="choice-chip" data-symptom="Backache">Backache</button>
+                <button type="button" class="choice-chip" data-symptom="Swelling">Swelling</button>
+                <button type="button" class="choice-chip" data-symptom="Headache">Headache</button>
+                <button type="button" class="choice-chip" data-symptom="Cramps">Cramps</button>
+                <button type="button" class="choice-chip" data-symptom="Braxton Hicks">Braxton Hicks</button>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <label for="journal-note">Notes / Questions</label>
+              <textarea id="journal-note" rows="2" maxlength="1000" placeholder="How are you feeling today?"></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Save Check-In</button>
+          </form>
+        </div>
+
+        <!-- ACOG-Standard Maternal Weight Trajectory Card -->
+        <div id="weight-tracker-card" class="card weight-tracker-card">
+          <div class="card-header-row">
+            <div>
+              <span class="eyebrow">ACOG Clinical Trajectory</span>
+              <h3>Maternal Weight Tracker</h3>
+            </div>
+            <div id="weight-unit-group" class="weight-unit-toggle" role="group" aria-label="Weight tracker units">
+              <button type="button" class="unit-btn is-active" data-weight-unit="kg">kg / cm</button>
+              <button type="button" class="unit-btn" data-weight-unit="lbs">lbs / in</button>
+            </div>
+          </div>
+
+          <div class="form-grid-2 weight-inputs-grid">
+            <div class="form-row">
+              <label for="pre-pregnancy-weight" id="pre-weight-label">Pre-Pregnancy Weight (kg)</label>
+              <input type="number" id="pre-pregnancy-weight" step="0.1" min="25" max="550" placeholder="e.g. 60">
+            </div>
+            <div class="form-row">
+              <label for="maternal-height" id="height-label">Height (cm)</label>
+              <input type="number" id="maternal-height" step="0.5" min="36" max="250" placeholder="e.g. 165">
+            </div>
+          </div>
+
+          <div class="bmi-summary-strip">
+            <span id="bmi-result-pill" class="care-pill care-pill-subtle">BMI: Enter baseline</span>
+            <span id="acog-range-summary" class="bmi-range-text">Healthy 40-week gain band updates automatically</span>
+          </div>
+
+          <div id="weight-chart-container" class="weight-chart-wrap"></div>
+
+          <div class="weight-legend" aria-hidden="true">
+            <span class="legend-item"><i class="legend-swatch legend-band"></i> ACOG Healthy Range</span>
+            <span class="legend-item"><i class="legend-swatch legend-line"></i> Logged Weight</span>
+          </div>
+
+          <p id="weight-trajectory-note" class="helper-text" style="margin: 8px 0 0;"></p>
+        </div>
+
+        <div class="card">
+          <h3>Recent Check-Ins</h3>
+          <div id="journal-entries-list" class="history-list"></div>
+        </div>
+
+        <!-- Doctor's Report & AI Appointment Questions -->
+        <div class="card report-cta-card">
+          <h3>Doctor Visit Prep</h3>
+          <p class="helper-text">Summarize your last 14 days of symptoms into tailored visit questions or print a one-page clinical report.</p>
+          <div class="stack-actions">
+            <button type="button" id="generate-doctor-questions-btn" class="btn btn-primary">Generate Doctor Questions with AI</button>
+            <button type="button" id="export-report-btn" class="btn btn-secondary">Export to PDF / Share with Doctor</button>
+          </div>
+          <div id="ai-doctor-questions-card" class="generated-questions-box" hidden>
+            <div class="card-header-row">
+              <span class="eyebrow">Tailored Questions (Last 14 Days)</span>
+              <span id="doctor-questions-source" class="mode-chip"></span>
+            </div>
+            <div id="ai-doctor-questions-body" class="generated-questions-body"></div>
+            <div class="btn-group" style="margin-top: 10px;">
+              <button type="button" id="copy-doctor-questions-btn" class="btn btn-secondary btn-sm">Copy Questions</button>
+              <button type="button" id="open-questions-in-doula-btn" class="btn btn-ghost btn-sm">Discuss in Haven AI</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Prenatal Appointments</h2>
+          <form id="appointment-form">
+            <div class="form-row">
+              <label for="appt-title">Visit / Scan Title</label>
+              <input type="text" id="appt-title" required maxlength="120" placeholder="e.g. 20-Week Anatomy Scan">
+            </div>
+            <div class="form-grid-2">
+              <div class="form-row">
+                <label for="appt-date">Date</label>
+                <input type="date" id="appt-date">
+              </div>
+              <div class="form-row">
+                <label for="appt-time">Time</label>
+                <input type="time" id="appt-time">
+              </div>
+            </div>
+            <div class="form-row">
+              <label for="appt-notes">Questions for Provider</label>
+              <input type="text" id="appt-notes" maxlength="500" placeholder="Optional reminders or questions">
+            </div>
+            <button type="submit" class="btn btn-secondary">Add Appointment</button>
+          </form>
+
+          <div id="appointments-list" class="history-list" style="margin-top: 16px;"></div>
+        </div>
+      </section>
+
+      <!-- TAB 5: HAVEN AI -->
+      <section id="tab-doula" class="tab-panel" role="tabpanel" aria-labelledby="nav-doula" hidden>
+        <div class="card doula-shell-card">
+          <div class="card-header-row">
+            <div class="doula-title-stack">
+              <div class="doula-title-group">
+                <h2>Haven AI</h2>
+                <span id="doula-mode-badge" class="mode-chip">Offline Guide</span>
+              </div>
+              <p class="doula-subtitle">
+                <span class="online-indicator" aria-hidden="true"></span>
+                <span>Your 24/7 Maternity Companion</span>
+              </p>
+            </div>
+            <button type="button" id="doula-clear-btn" class="text-btn">Clear Chat</button>
+          </div>
+
+          <div id="doula-context-strip" class="context-strip"></div>
+
+          <div id="doula-messages" class="chat-thread" aria-live="polite"></div>
+
+          <div id="doula-loading" class="chat-loading" hidden>
+            <span class="typing-dots" aria-hidden="true"><span></span><span></span><span></span></span>
+            <span>Thinking with care...</span>
+          </div>
+
+          <div id="doula-quick-prompts" class="quick-prompts" aria-label="Quick pregnancy questions">
+            <button type="button" id="qp-baby-size" class="quick-prompt-chip" data-prompt-type="baby-size">🥑 Is my baby's size normal for my week?</button>
+            <button type="button" id="qp-food-safety" class="quick-prompt-chip" data-prompt-type="food-safety">🧀 Food safety check</button>
+            <button type="button" id="qp-sleep-pos" class="quick-prompt-chip" data-prompt-type="sleep-pos">💤 Best sleep positions</button>
+            <button type="button" id="qp-ob-questions" class="quick-prompt-chip" data-prompt-type="ob-questions">📋 Doctor visit prep</button>
+          </div>
+
+          <form id="doula-form" class="chat-input-bar">
+            <label for="doula-input" class="sr-only">Ask Haven AI</label>
+            <input
+              type="text"
+              id="doula-input"
+              placeholder="Ask Haven about symptoms, foods, sleep, or baby..."
+              maxlength="800"
+              autocomplete="off"
+              required
+            >
+            <button type="submit" id="doula-send-btn" class="send-btn" aria-label="Send message">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="22" y1="2" x2="11" y2="13"></line>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+              </svg>
+            </button>
+          </form>
+        </div>
+      </section>
+    </main>
+
+    <!-- Bottom Tab Navigation -->
+    <nav class="bottom-nav" role="tablist" aria-label="Primary sections">
+      <button type="button" id="nav-progress" class="nav-btn is-active" role="tab" aria-selected="true" aria-controls="tab-progress" data-tab="progress">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="9"></circle>
+          <path d="M12 7v5l3 3"></path>
+        </svg>
+        <span>Progress</span>
+      </button>
+
+      <button type="button" id="nav-kicks" class="nav-btn" role="tab" aria-selected="false" aria-controls="tab-kicks" data-tab="kicks">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+        </svg>
+        <span>Kicks</span>
+      </button>
+
+      <button type="button" id="nav-contractions" class="nav-btn" role="tab" aria-selected="false" aria-controls="tab-contractions" data-tab="contractions">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+        </svg>
+        <span>Timer</span>
+      </button>
+
+      <button type="button" id="nav-journal" class="nav-btn" role="tab" aria-selected="false" aria-controls="tab-journal" data-tab="journal">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+        </svg>
+        <span>Journal</span>
+      </button>
+
+      <button type="button" id="nav-doula" class="nav-btn" role="tab" aria-selected="false" aria-controls="tab-doula" data-tab="doula">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 3l1.9 4.3L18.2 9l-4.3 1.9L12 15.2l-1.9-4.3L5.8 9l4.3-1.7L12 3z"></path>
+          <path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9L19 15z"></path>
+        </svg>
+        <span class="nav-label">Haven AI</span>
+      </button>
+    </nav>
+
+    <!-- Floating Sound Machine Status Bar -->
+    <div id="sound-active-bar" class="sound-active-bar" hidden>
+      <div class="sound-active-meta">
+        <span class="online-indicator" aria-hidden="true"></span>
+        <span id="sound-active-label">Womb Heartbeat · Playing</span>
+      </div>
+      <div class="sound-active-actions">
+        <button type="button" id="sound-bar-open-btn" class="text-btn">Controls</button>
+        <button type="button" id="sound-bar-pause-btn" class="chip-btn">Pause</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings / Backup Modal -->
+  <div id="settings-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="settings-modal-title" hidden>
+    <div class="modal-card">
+      <div class="card-header-row">
+        <h2 id="settings-modal-title">Settings &amp; Backup</h2>
+        <button type="button" id="close-settings-btn" class="icon-btn" aria-label="Close settings">&times;</button>
+      </div>
+
+      <div id="settings-blossom-card" class="settings-blossom-card">
+        <div class="settings-blossom-meta">
+          <div class="settings-blossom-title-row">
+            <strong>BellyHaven Blossom &#10024;</strong>
+            <span id="settings-blossom-badge" class="care-pill">Free Companion</span>
+          </div>
+          <p id="settings-blossom-desc" class="helper-text">Unlock unlimited 24/7 Haven AI chat, PDF doctor summaries, and 1-page birth plan exports.</p>
+        </div>
+        <button type="button" id="settings-upgrade-blossom-btn" class="btn blossom-cta-btn">Upgrade to Blossom &#10024;</button>
+      </div>
+
+      <hr class="divider">
+
+      <div class="form-row">
+        <label for="settings-doctor-phone">OB-GYN / Hospital Emergency Contact</label>
+        <div class="btn-group">
+          <input type="tel" id="settings-doctor-phone" placeholder="e.g. +1 555-0199" maxlength="30">
+          <button type="button" id="save-doctor-phone-btn" class="btn btn-secondary" style="width: auto; white-space: nowrap;">Save</button>
+        </div>
+      </div>
+
+      <hr class="divider">
+
+      <p class="helper-text">All data stays private on this device in local browser storage. Export a backup anytime.</p>
+
+      <div class="stack-actions">
+        <button type="button" id="export-json-btn" class="btn btn-primary">Download JSON Backup</button>
+        <label class="btn btn-secondary file-btn">
+          Restore JSON Backup
+          <input type="file" id="import-json-input" accept=".json,application/json" hidden>
+        </label>
+        <button type="button" id="export-csv-btn" class="btn btn-secondary">Export Visit Summary (CSV)</button>
+      </div>
+
+      <hr class="divider">
+
+      <div class="danger-zone">
+        <button type="button" id="reset-all-btn" class="btn btn-danger-outline">Reset All App Data</button>
+        <div id="reset-confirm-box" class="confirm-box" hidden>
+          <p>Erase all saved dates, kicks, contractions, and journal entries?</p>
+          <div class="btn-group">
+            <button type="button" id="confirm-reset-yes" class="btn btn-danger">Yes, Erase All</button>
+            <button type="button" id="confirm-reset-no" class="btn btn-secondary">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Emergency & Care Plan Modal Sheet -->
+  <div id="care-plan-modal" class="modal-backdrop care-sheet-backdrop" role="dialog" aria-modal="true" aria-labelledby="care-plan-modal-title" hidden>
+    <div class="modal-card care-sheet-card">
+      <div class="care-sheet-header">
+        <div class="card-header-row" style="margin-bottom: 10px;">
+          <div>
+            <span class="eyebrow">Offline-First &amp; Private</span>
+            <h2 id="care-plan-modal-title">Emergency &amp; Care Plan</h2>
+          </div>
+          <button type="button" id="close-care-plan-btn" class="icon-btn" aria-label="Close Emergency and Care Plan">&times;</button>
+        </div>
+        <div id="care-jump-nav" class="care-jump-nav" role="navigation" aria-label="Jump to care plan section">
+          <button type="button" class="care-jump-btn is-active" data-care-jump="care-contacts-card">Care Team</button>
+          <button type="button" class="care-jump-btn" data-care-jump="hospital-bag-card">Hospital Bag</button>
+          <button type="button" class="care-jump-btn" data-care-jump="red-flag-guide-card">Warning Signs</button>
+          <button type="button" class="care-jump-btn" data-care-jump="birth-plan-summary-card">Birth Plan</button>
+        </div>
+      </div>
+
+      <div id="care-sheet-body" class="care-sheet-body">
+        <!-- 1. Doctor & Midwife Quick Contacts -->
+        <section id="care-contacts-card" class="card care-subcard" aria-labelledby="care-contacts-heading">
+          <div class="card-header-row">
+            <h3 id="care-contacts-heading">My Care Team &amp; Emergency Contacts</h3>
+            <span id="care-contacts-status" class="care-pill care-pill-subtle">Saved offline</span>
+          </div>
+
+          <form id="care-contacts-form" novalidate>
+            <div class="form-row">
+              <label for="care-doctor-name">Primary OB-GYN / Midwife Name</label>
+              <input type="text" id="care-doctor-name" placeholder="e.g. Dr. Elena Gomez, OB-GYN" maxlength="100" autocomplete="name">
+            </div>
+
+            <div class="form-row">
+              <label for="care-clinic-name">Clinic / Hospital Name</label>
+              <input type="text" id="care-clinic-name" placeholder="e.g. St. Jude Women's Pavilion" maxlength="120">
+            </div>
+
+            <div class="form-row">
+              <label for="care-doctor-phone">Direct Phone Number (tel:)</label>
+              <input type="tel" id="care-doctor-phone" placeholder="e.g. +1 555-0199" maxlength="30" autocomplete="tel">
+            </div>
+
+            <div class="form-row">
+              <label for="care-partner-name">Emergency / Partner Contact Name &amp; Phone</label>
+              <div class="form-grid-2">
+                <input type="text" id="care-partner-name" placeholder="Partner / contact name" maxlength="100" aria-label="Emergency or partner contact name">
+                <input type="tel" id="care-partner-phone" placeholder="Emergency phone" maxlength="30" aria-label="Emergency or partner phone number" autocomplete="tel">
+              </div>
+            </div>
+
+            <div class="btn-group care-contact-actions">
+              <a id="care-call-doctor-link" class="btn care-btn-rose" role="button">Call Doctor</a>
+              <a id="care-call-emergency-link" class="btn btn-danger" role="button">Call Emergency</a>
+            </div>
+          </form>
+        </section>
+
+        <!-- 2. Hospital Bag Interactive Checklist -->
+        <section id="hospital-bag-card" class="card care-subcard" aria-labelledby="hospital-bag-heading">
+          <div class="card-header-row">
+            <h3 id="hospital-bag-heading">Hospital Bag Essentials</h3>
+            <span id="hospital-bag-progress-pill" class="care-pill">0 of 19 packed</span>
+          </div>
+
+          <div class="linear-progress care-bag-progress" aria-hidden="true">
+            <div id="hospital-bag-progress-fill" class="linear-progress-fill care-bag-progress-fill"></div>
+          </div>
+
+          <form id="hospital-bag-custom-form" class="care-custom-form">
+            <label for="bag-custom-item-input" class="sr-only">Add Custom Item</label>
+            <input type="text" id="bag-custom-item-input" placeholder="Add Custom Item..." maxlength="80">
+            <label for="bag-custom-category" class="sr-only">Checklist category</label>
+            <select id="bag-custom-category" aria-label="Item category">
+              <option value="mom">For Mom</option>
+              <option value="baby">For Baby</option>
+              <option value="partner">For Partner</option>
+              <option value="documents">Documents</option>
+            </select>
+            <button type="submit" id="bag-add-custom-btn" class="btn care-btn-rose btn-sm">Add</button>
+          </form>
+
+          <div id="hospital-bag-groups" class="bag-groups"></div>
+        </section>
+
+        <!-- 3. Red-Flag Symptoms Clinical Guide -->
+        <section id="red-flag-guide-card" class="card care-subcard care-redflag-card" aria-labelledby="red-flag-guide-heading">
+          <div class="card-header-row">
+            <h3 id="red-flag-guide-heading">When to Call Your Doctor or Visit Labor &amp; Delivery</h3>
+            <span class="care-clinical-badge">ACOG / NHS</span>
+          </div>
+
+          <ul class="redflag-list">
+            <li class="redflag-item">
+              <span class="redflag-badge redflag-badge-rose">Urgent</span>
+              <span>Severe or persistent abdominal/pelvic pain or cramping.</span>
+            </li>
+            <li class="redflag-item">
+              <span class="redflag-badge redflag-badge-rose">Immediate</span>
+              <span>Heavy vaginal bleeding or fluid leakage (potential water break).</span>
+            </li>
+            <li class="redflag-item">
+              <span class="redflag-badge redflag-badge-amber">Call Promptly</span>
+              <span>Significantly decreased or absent baby movements (fetal movement slowdown).</span>
+            </li>
+            <li class="redflag-item">
+              <span class="redflag-badge redflag-badge-rose">Urgent</span>
+              <span>Sudden swelling of face/hands, severe persistent headaches, or visual disturbances (spots, flashing lights).</span>
+            </li>
+            <li class="redflag-item">
+              <span class="redflag-badge redflag-badge-amber">Monitor Closely</span>
+              <span>Fever over 100.4&deg;F (38&deg;C) or severe persistent vomiting/inability to keep liquids down.</span>
+            </li>
+          </ul>
+
+          <a id="guide-call-care-team-link" class="btn care-btn-rose" role="button">Tap to Call Care Team</a>
+
+          <p class="care-disclaimer">
+            This list is informational only and does not replace medical diagnosis. If you feel uneasy, trust your instincts and contact your provider immediately.
+          </p>
+        </section>
+
+        <!-- Clinical PDF Report Export inside Care Plan -->
+        <section class="card care-subcard">
+          <div class="card-header-row">
+            <h3>Clinical Doctor Summary</h3>
+            <span class="care-pill care-pill-subtle">PDF Ready</span>
+          </div>
+          <p class="helper-text">Compile your gestational age, last 7 kick sessions rate, contractions, maternal vitals, and care team contacts into a doctor-ready printout.</p>
+          <button type="button" id="care-export-report-btn" class="btn care-btn-rose">Export Doctor Report</button>
+        </section>
+
+        <!-- Interactive Birth Plan Builder Summary inside Care Plan -->
+        <section id="birth-plan-summary-card" class="card care-subcard" aria-labelledby="care-birth-plan-heading">
+          <div class="card-header-row">
+            <h3 id="care-birth-plan-heading">Interactive Birth Plan Builder</h3>
+            <span id="care-birth-plan-pill" class="care-pill care-pill-subtle">0 selected</span>
+          </div>
+          <p id="care-birth-plan-summary" class="helper-text">Select your labor atmosphere, pain comfort, delivery preferences, and newborn care choices in a crisp 1-page sheet for hospital staff.</p>
+          <div class="luxury-tools-grid">
+            <button type="button" id="care-open-birth-plan-btn" class="btn care-btn-rose">Open Builder</button>
+            <button type="button" id="care-export-birth-plan-btn" class="btn care-btn-outline">Export Birth Plan (Print / PDF)</button>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <!-- Haven Sound Machine Modal -->
+  <div id="sound-machine-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="sound-modal-title" hidden>
+    <div class="modal-card luxury-modal-card">
+      <div class="card-header-row">
+        <div>
+          <span class="eyebrow">100% Synthetic · Web Audio API</span>
+          <h2 id="sound-modal-title">Haven Sound Machine</h2>
+        </div>
+        <button type="button" id="close-sound-modal-btn" class="icon-btn" aria-label="Close Haven Sound Machine">&times;</button>
+      </div>
+
+      <div id="sound-mode-group" class="sound-mode-grid" role="group" aria-label="Soundscape selection">
+        <button type="button" class="sound-mode-card is-active" data-sound-mode="womb">
+          <strong>Womb Heartbeat</strong>
+          <span>65 BPM rhythmic maternal pulse</span>
+        </button>
+        <button type="button" class="sound-mode-card" data-sound-mode="noise">
+          <strong>Pink / White Noise</strong>
+          <span>Soft filtered hush for sleep &amp; nausea</span>
+        </button>
+        <button type="button" class="sound-mode-card" data-sound-mode="breathing">
+          <strong>Guided 4-7-8 Breathing</strong>
+          <span>Inhale 4s · Hold 7s · Exhale 8s + chimes</span>
+        </button>
+      </div>
+
+      <!-- Visual 4-7-8 Breathing Pacer Stage -->
+      <div id="breath-pacer-stage" class="breath-pacer-stage" hidden>
+        <div class="breath-orb-wrap">
+          <div id="breath-pacer-orb" class="breath-pacer-orb">
+            <span id="breath-countdown-num" class="breath-countdown-num">4</span>
+          </div>
+        </div>
+        <strong id="breath-phase-label" class="breath-phase-label">Ready to Breathe</strong>
+        <span class="helper-text" style="margin: 0;">4s inhale · 7s hold · 8s gentle exhale</span>
+      </div>
+
+      <div class="sound-controls-panel">
+        <div class="sound-primary-row">
+          <button type="button" id="sound-play-toggle-btn" class="btn care-btn-rose btn-lg">Play Soundscape</button>
+        </div>
+
+        <div class="sound-volume-row">
+          <label for="sound-volume-slider">Volume (<span id="sound-volume-val">65%</span>)</label>
+          <input type="range" id="sound-volume-slider" class="luxury-range" min="0" max="100" value="65">
+        </div>
+
+        <div class="sound-timer-row">
+          <span class="field-label" style="margin: 0;">Auto-Off Sleep Timer</span>
+          <div id="sound-timer-group" class="chip-group" role="group" aria-label="Sleep timer">
+            <button type="button" class="choice-chip is-selected" data-sleep-min="0">Off</button>
+            <button type="button" class="choice-chip" data-sleep-min="15">15 min</button>
+            <button type="button" class="choice-chip" data-sleep-min="30">30 min</button>
+          </div>
+          <span id="sound-timer-display" class="care-pill care-pill-subtle" hidden>15:00</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Doctor Report Preview Modal -->
+  <div id="report-preview-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="report-preview-title" hidden>
+    <div class="modal-card luxury-modal-card report-preview-modal-card">
+      <div class="card-header-row">
+        <div>
+          <span class="eyebrow">Provider-Ready Clinical View</span>
+          <h2 id="report-preview-title">Doctor Report Preview</h2>
+        </div>
+        <button type="button" id="close-report-preview-btn" class="icon-btn" aria-label="Close doctor report preview">&times;</button>
+      </div>
+
+      <div id="report-preview-body" class="report-preview-body"></div>
+
+      <div class="btn-group" style="margin-top: 14px;">
+        <button type="button" id="print-doctor-report-btn" class="btn care-btn-rose">Print / Save PDF</button>
+        <button type="button" id="dismiss-report-preview-btn" class="btn btn-secondary">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Partner Share Update Modal -->
+  <div id="partner-share-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="partner-share-title" hidden>
+    <div class="modal-card luxury-modal-card">
+      <div class="card-header-row">
+        <div>
+          <span class="eyebrow">One-Tap Milestone Card</span>
+          <h2 id="partner-share-title">Share Update with Partner &#128140;</h2>
+        </div>
+        <button type="button" id="close-partner-share-btn" class="icon-btn" aria-label="Close partner share">&times;</button>
+      </div>
+
+      <p class="helper-text">Auto-generated from your current week, baby milestone size, today's kicks, and mood. Customize any line before sending.</p>
+
+      <div class="form-row">
+        <label for="partner-update-text">Custom Partner Message</label>
+        <textarea id="partner-update-text" rows="6" maxlength="1000"></textarea>
+      </div>
+
+      <div class="stack-actions">
+        <button type="button" id="partner-native-share-btn" class="btn care-btn-rose">Share via Device</button>
+        <div class="btn-group">
+          <a id="partner-whatsapp-link" class="btn care-btn-outline" target="_blank" rel="noopener noreferrer">Send on WhatsApp</a>
+          <button type="button" id="partner-copy-btn" class="btn btn-secondary">Copy Message</button>
+        </div>
+        <button type="button" id="partner-refresh-draft-btn" class="text-btn">Refresh from Live Data</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Trimester / Due Week Milestone Celebration Modal -->
+  <div id="celebration-modal" class="modal-backdrop celebration-backdrop" role="dialog" aria-modal="true" aria-labelledby="celebration-title" hidden>
+    <div class="modal-card luxury-modal-card celebration-card">
+      <span id="celebration-badge" class="care-pill">New Milestone Reached</span>
+      <h2 id="celebration-title">Congratulations Mama!</h2>
+      <p id="celebration-subtitle" class="celebration-subtitle"></p>
+      <div class="stack-actions">
+        <button type="button" id="celebration-share-btn" class="btn care-btn-rose">Share Update with Partner &#128140;</button>
+        <button type="button" id="close-celebration-btn" class="btn care-btn-outline">Continue Journey</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Interactive Visual Birth Plan Builder Modal Sheet -->
+  <div id="birth-plan-modal" class="modal-backdrop care-sheet-backdrop" role="dialog" aria-modal="true" aria-labelledby="birth-plan-modal-title" hidden>
+    <div class="modal-card care-sheet-card birth-plan-sheet-card">
+      <div class="care-sheet-header">
+        <div class="card-header-row" style="margin-bottom: 6px;">
+          <div>
+            <span class="eyebrow">Birth Readiness &amp; Safety</span>
+            <h2 id="birth-plan-modal-title">Interactive Birth Plan Builder</h2>
+          </div>
+          <div class="birth-plan-header-actions">
+            <span id="birth-plan-count-pill" class="care-pill">0 selected</span>
+            <button type="button" id="close-birth-plan-btn" class="icon-btn" aria-label="Close Interactive Birth Plan Builder">&times;</button>
+          </div>
+        </div>
+        <p class="helper-text" style="margin: 0;">Tap preferences below to auto-save offline. Care team &amp; hospital contacts sync automatically from your Care Plan.</p>
+      </div>
+
+      <div id="birth-plan-sheet-body" class="care-sheet-body">
+        <div id="birth-plan-categories" class="birth-plan-categories"></div>
+
+        <section class="card care-subcard birth-plan-notes-card">
+          <div class="card-header-row">
+            <label for="birth-plan-notes" class="birth-plan-notes-label">Special Notes / Medical Instructions for Labor Team</label>
+            <span id="birth-plan-save-status" class="care-pill care-pill-subtle">Saved offline</span>
+          </div>
+          <textarea id="birth-plan-notes" rows="4" maxlength="2000" placeholder="Add allergies (e.g. latex/penicillin), IV port preferences, mobility aids, visitor wishes, or cultural practices..."></textarea>
+        </section>
+
+        <div class="birth-plan-footer-actions">
+          <button type="button" id="export-birth-plan-pdf-btn" class="btn care-btn-rose">Export Birth Plan (Print / PDF)</button>
+          <button type="button" id="reset-birth-plan-btn" class="text-btn">Reset Preferences</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BellyHaven Blossom Paywall Modal -->
+  <div id="blossom-paywall-modal" class="modal-backdrop blossom-backdrop" role="dialog" aria-modal="true" aria-labelledby="blossom-paywall-title" hidden>
+    <div class="modal-card luxury-modal-card blossom-card">
+      <div class="blossom-glow" aria-hidden="true"></div>
+      <div class="card-header-row blossom-header-row">
+        <span class="blossom-brand-pill" id="blossom-paywall-title">BellyHaven Blossom &#10024;</span>
+        <button type="button" id="close-blossom-btn" class="icon-btn" aria-label="Close BellyHaven Blossom modal">&times;</button>
+      </div>
+
+      <p id="blossom-trigger-note" class="blossom-trigger-note" hidden></p>
+
+      <h2 class="blossom-headline">Your Entire Pregnancy, Fully Supported &amp; Completely Private.</h2>
+      <p class="blossom-subhead">No ad networks. No personal data brokers. Just clinical precision and complete peace of mind.</p>
+
+      <ul class="blossom-benefits-list">
+        <li><span class="blossom-check" aria-hidden="true">&#10003;</span> Unlimited 24/7 Haven AI Maternity Companion conversations</li>
+        <li><span class="blossom-check" aria-hidden="true">&#10003;</span> Clinical Doctor Visit PDFs &amp; 1-Page Interactive Birth Plan Exports</li>
+        <li><span class="blossom-check" aria-hidden="true">&#10003;</span> Custom Prenatal Weight Tracker with IOM Trajectory Curve</li>
+        <li><span class="blossom-check" aria-hidden="true">&#10003;</span> Offline-First Sound Machine (Womb, Pink Noise &amp; 4-7-8 Breath Pacer)</li>
+        <li><span class="blossom-check" aria-hidden="true">&#10003;</span> 100% Local Encrypted-at-Rest Browser Privacy &amp; JSON Backups</li>
+      </ul>
+
+      <div id="blossom-plan-selector" class="blossom-plan-grid" role="radiogroup" aria-label="Choose BellyHaven Blossom plan">
+        <button type="button" id="blossom-plan-monthly" class="blossom-plan-card" data-blossom-plan="monthly" role="radio" aria-checked="false">
+          <div class="blossom-plan-top">
+            <span class="blossom-plan-badge blossom-plan-badge-muted">Flexible</span>
+            <span class="blossom-plan-name">Monthly Flexibility</span>
+          </div>
+          <div class="blossom-plan-price"><strong>$4.99</strong> <span>/ month</span></div>
+          <p class="blossom-plan-desc">Billed monthly. Cancel anytime. <span class="blossom-plan-anchor">~$47 over a full term.</span></p>
+        </button>
+
+        <button type="button" id="blossom-plan-onetime" class="blossom-plan-card is-selected" data-blossom-plan="onetime" role="radio" aria-checked="true">
+          <div class="blossom-plan-top">
+            <span class="blossom-plan-badge blossom-plan-badge-popular">Save ~58% &bull; Most Popular</span>
+            <span class="blossom-plan-name">Full Journey Pass</span>
+          </div>
+          <div class="blossom-plan-price">
+            <s class="blossom-price-strike">$47.99</s>
+            <strong>$19.99</strong>
+            <span>One-Time</span>
+          </div>
+          <p class="blossom-plan-desc">Pay once. Keep forever. Covers all 40 weeks + postpartum recovery. Zero recurring charges.</p>
+        </button>
+      </div>
+
+      <div id="blossom-checkout-summary" class="blossom-checkout-summary">
+        Selected: <strong>Full Journey Pass</strong> &mdash; $19.99 USD One-Time
+      </div>
+
+      <p id="paypal-status-note" class="helper-text paypal-status-note">Loading PayPal, Venmo, Apple/Google Pay &amp; Card checkout...</p>
+      <div id="paypal-button-container" class="paypal-button-container"></div>
+
+      <button type="button" id="blossom-maybe-later-btn" class="text-btn blossom-dismiss-link">Continue with free tier</button>
+    </div>
+  </div>
+
+  <canvas id="confetti-canvas" class="confetti-canvas" aria-hidden="true"></canvas>
+
+  <!-- Printable Clinical Doctor Report & Birth Plan (rendered for @media print / PDF export) -->
+  <section id="doctor-report" class="print-report" aria-hidden="true"></section>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <script src="./js/calculations.js"></script>
+  <script src="./js/storage.js"></script>
+  <script src="./js/ai-doula.js"></script>
+  <script src="./js/care-plan.js"></script>
+  <script src="./js/sound-machine.js"></script>
+  <script src="./js/baby-notes.js"></script>
+  <script src="./js/weight-tracker.js"></script>
+  <script src="./js/birth-plan.js"></script>
+  <script src="./js/blossom-paywall.js"></script>
+  <script src="./js/app.js"></script>
+</body>
+</html>

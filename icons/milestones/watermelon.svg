@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200" role="img" aria-label="Watermelon watercolor illustration">
+  <defs>
+    <radialGradient id="bgHalo" cx="46%" cy="42%" r="54%">
+      <stop offset="0%" stop-color="#fff9fa" stop-opacity="0.95"/>
+      <stop offset="55%" stop-color="#fae0e2" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#f7dce0" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="leafSage" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#b6d6be"/>
+      <stop offset="55%" stop-color="#87b296"/>
+      <stop offset="100%" stop-color="#648f73"/>
+    </linearGradient>
+    <linearGradient id="stemWood" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#b08e7b"/>
+      <stop offset="100%" stop-color="#7c5d4e"/>
+    </linearGradient>
+    <filter id="washBlur" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8"/>
+    </filter>
+    <filter id="paintBlur" x="-15%" y="-15%" width="130%" height="130%">
+      <feGaussianBlur stdDeviation="2.4"/>
+    </filter>
+        <radialGradient id="wmRind" cx="36%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#b4dbb5"/>
+      <stop offset="55%" stop-color="#74aa7c"/>
+      <stop offset="100%" stop-color="#477853"/>
+    </radialGradient>
+    <radialGradient id="wmSlice" cx="45%" cy="45%" r="65%">
+      <stop offset="0%" stop-color="#f99ca4"/>
+      <stop offset="65%" stop-color="#e56d7a"/>
+      <stop offset="100%" stop-color="#c44a58"/>
+    </radialGradient>
+  </defs>
+  <circle cx="98" cy="96" r="76" fill="url(#bgHalo)"/>
+  <ellipse cx="106" cy="104" rx="58" ry="52" fill="#fae0e2" opacity="0.34" filter="url(#washBlur)"/>
+  <ellipse cx="100" cy="165" rx="52" ry="9" fill="#c99ca6" opacity="0.28" filter="url(#paintBlur)"/>
+    <ellipse cx="86" cy="96" rx="46" ry="42" fill="url(#wmRind)"/>
+  <g fill="none" stroke="#3d6647" stroke-width="4.5" stroke-linecap="round" opacity="0.52">
+    <path d="M62 60 C52 84 52 108 62 132"/>
+    <path d="M86 54 C82 84 82 108 86 138"/>
+    <path d="M110 60 C118 84 118 108 110 132"/>
+  </g>
+  <path d="M76 128 C98 158 148 154 162 118 Z" fill="#63966c"/>
+  <path d="M81 126 C100 152 144 148 157 118 Z" fill="#f7f7ec"/>
+  <path d="M86 125 C103 146 140 142 152 118 Z" fill="url(#wmSlice)"/>
+  <g fill="#4a4e69">
+    <circle cx="110" cy="128" r="2"/>
+    <circle cx="122" cy="132" r="2"/>
+    <circle cx="132" cy="125" r="2"/>
+  </g>
+</svg>

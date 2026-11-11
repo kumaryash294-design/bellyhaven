@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BellyHaven — Unit Tests</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #faf7f5;
+      color: #4a4e69;
+      margin: 0;
+      padding: 24px;
+    }
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 14px;
+      padding: 24px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+    }
+    h1 {
+      margin-top: 0;
+      color: #b5838d;
+    }
+    .summary {
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+    .summary.pass { background: #eef6f2; color: #366654; }
+    .summary.fail { background: #fdf0f1; color: #b83f45; }
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    li {
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      border: 1px solid #eee;
+    }
+    li.pass { background: #f8fbf9; border-color: #d6ebe1; }
+    li.fail { background: #fef5f6; border-color: #f3c8cb; color: #b83f45; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>BellyHaven Unit Tests</h1>
+    <div id="summary" class="summary">Running tests...</div>
+    <ul id="results"></ul>
+  </div>
+
+  <script src="../js/calculations.js"></script>
+  <script src="../js/storage.js"></script>
+  <script src="../js/ai-doula.js"></script>
+  <script src="../js/care-plan.js"></script>
+  <script src="../js/sound-machine.js"></script>
+  <script src="../js/baby-notes.js"></script>
+  <script src="../js/weight-tracker.js"></script>
+  <script src="../js/birth-plan.js"></script>
+  <script src="../js/blossom-paywall.js"></script>
+  <script>
+    (function (calc, store, doula, carePlan, soundMod, babyNotesMod, weightMod, birthPlanMod, blossomMod) {
+      'use strict';
+
+      const tests = [];
+      function test(name, fn) {
+        tests.push({ name, fn });
+      }
+
+      function assertEqual(actual, expected, msg) {
+        if (actual !== expected) {
+          throw new Error(`${msg || 'Assertion failed'}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+        }
+      }
+
+      function assertTrue(condition, msg) {
+        if (!condition) {
+          throw new Error(msg || 'Expected condition to be true');
+        }
+      }
+
+      function createMemoryStorage(initial) {
+        const data = Object.assign({}, initial || {});
+        return {
+          getItem: (k) => (Object.prototype.hasOwnProperty.call(data, k) ? data[k] : null),
+          setItem: (k, v) => { data[k] = String(v); },
+          removeItem: (k) => { delete data[k]; }
+        };
+      }
+
+      test('parseLocalDate rejects invalid calendar dates like Feb 30', () => {
+        assertEqual(calc.parseLocalDate('2026-02-30'), null);
+        assertEqual(calc.parseLocalDate('not-a-date'), null);
+        const d = calc.parseLocalDate('2026-03-15');
+        assertTrue(d instanceof Date);
+        assertEqual(d.getFullYear(), 2026);
+        assertEqual(d.getMonth(), 2);
+        assertEqual(d.getDate(), 15);
+      });
+
+      test('calculatePregnancyStats computes exact EDD and weeks without UTC drift', () => {
+        const ref = calc.parseLocalDate('2026-06-01');
+        const stats = calc.calculatePregnancyStats({
+          mode: 'lmp',
+          dateStr: '2026-03-01',
+          cycleLength: 28,
+          referenceDate: ref
+        });
+        assertTrue(stats.valid);
+        assertEqual(stats.eddIso, '2026-12-06');
+        assertEqual(stats.gestationDays, 92);
+        assertEqual(stats.stageLabel, '13w 1d');
+        assertEqual(stats.trimester.number, 1);
+      });
+
+      test('normalizeCycleLength defaults empty, null, zero, or invalid inputs to 28 days', () => {
+        assertEqual(calc.DEFAULT_CYCLE_LENGTH, 28);
+        assertEqual(calc.MIN_CYCLE_LENGTH, 20);
+        assertEqual(calc.MAX_CYCLE_LENGTH, 45);
+        assertEqual(calc.normalizeCycleLength(''), 28);
+        assertEqual(calc.normalizeCycleLength(null), 28);
+        assertEqual(calc.normalizeCycleLength(undefined), 28);
+        assertEqual(calc.normalizeCycleLength(0), 28);
+        assertEqual(calc.normalizeCycleLength('abc'), 28);
+        assertEqual(calc.normalizeCycleLength(20), 20);
+        assertEqual(calc.normalizeCycleLength(45), 45);
+        assertEqual(calc.normalizeCycleLength(30), 30);
+      });
+
+      test('calculatePregnancyStats handles cycle length adjustment and EDD mode symmetrically', () => {
+        const ref = calc.parseLocalDate('2026-08-01');
+        const fromLmp = calc.calculatePregnancyStats({
+          mode: 'lmp',
+          dateStr: '2026-03-01',
+          cycleLength: 32,
+          referenceDate: ref
+        });
+        assertTrue(fromLmp.valid);
+        assertEqual(fromLmp.eddIso, '2026-12-10');
+
+        const fromEdd = calc.calculatePregnancyStats({
+          mode: 'edd',
+          dateStr: '2026-12-10',
+          cycleLength: 32,
+          referenceDate: ref
+        });
+        assertTrue(fromEdd.valid);
+        assertEqual(fromEdd.lmpIso, '2026-03-01');
+        assertEqual(fromEdd.stageLabel, fromLmp.stageLabel);
+      });
+
+      test('calculatePregnancyStats rejects future LMP dates', () => {
+        const ref = calc.parseLocalDate('2026-06-01');
+        const stats = calc.calculatePregnancyStats({
+          mode: 'lmp',
+          dateStr: '2026-06-15',
+          referenceDate: ref
+        });
+        assertEqual(stats.valid, false);
+      });
+
+      test('getMilestone preserves expected milestones, Week 24 Ear of Corn, and dual units', () => {
+        assertEqual(calc.getMilestone(2).name, 'Poppy Seed');
+        assertEqual(calc.getMilestone(8).name, 'Raspberry');
+        assertEqual(calc.getMilestone(12).name, 'Plum');
+        assertEqual(calc.getMilestone(16).name, 'Avocado');
+        assertEqual(calc.getMilestone(20).name, 'Banana');
+        assertEqual(calc.getMilestone(24).name, 'Ear of Corn');
+        assertEqual(calc.getMilestone(28).name, 'Eggplant');
+        assertEqual(calc.getMilestone(32).name, 'Pineapple');
+        assertEqual(calc.getMilestone(36).name, 'Papaya');
+        assertEqual(calc.getMilestone(40).name, 'Watermelon');
+        assertTrue(calc.getMilestone(24).length.includes('cm'));
+        assertTrue(calc.getMilestone(24).length.includes('in'));
+        assertTrue(calc.getMilestone(24).weight.includes('g'));
+        assertTrue(calc.getMilestone(24).weight.includes('oz'));
+        for (let w = 4; w <= 42; w++) {
+          const ms = calc.getMilestone(w);
+          assertTrue(typeof ms.imageUrl === 'string' && ms.imageUrl.startsWith('./icons/milestones/'));
+        }
+      });
+
+      test('computeContractionStats enforces full 1-hour span for 5-1-1 rule', () => {
+        const now = 1700000000000;
+        const shortCluster = [];
+        for (let i = 0; i < 9; i++) {
+          const startMs = now - (8 - i) * 5 * 60 * 1000; // 40 min span
+          shortCluster.push({ id: `s_${i}`, startMs, endMs: startMs + 65 * 1000, intensity: 'Moderate' });
+        }
+        assertEqual(calc.computeContractionStats(shortCluster, now + 2000).isFiveOneOnePattern, false);
+
+        const fullHourCluster = [];
+        for (let i = 0; i < 13; i++) {
+          const startMs = now - (12 - i) * 5 * 60 * 1000; // 60 min span
+          fullHourCluster.push({ id: `c_${i}`, startMs, endMs: startMs + 65 * 1000, intensity: 'Strong' });
+        }
+        const result = calc.computeContractionStats(fullHourCluster, now + 2000);
+        assertEqual(result.lastHourCount, 13);
+        assertEqual(result.avgDurationSec, 65);
+        assertEqual(result.avgIntervalSec, 300);
+        assertEqual(result.intensityCounts.Strong, 13);
+        assertEqual(result.isFiveOneOnePattern, true);
+      });
+
+      test('computeKickSummary calculates total sessions and average duration', () => {
+        const summary = calc.computeKickSummary([
+          { count: 10, durationSec: 600 },
+          { count: 10, durationSec: 900 }
+        ]);
+        assertEqual(summary.totalSessions, 2);
+        assertEqual(summary.totalKicks, 20);
+        assertEqual(summary.avgDurationSec, 750);
+        assertEqual(summary.avgKicksPerSession, 10);
+      });
+
+      test('storage migrates legacy user_lmp and kick_count keys cleanly', () => {
+        const mem = createMemoryStorage({
+          user_lmp: '2026-04-10',
+          kick_count: '14'
+        });
+        const loaded = store.loadState(mem);
+        assertEqual(loaded.profile.dateStr, '2026-04-10');
+        assertEqual(loaded.kicks.quickCount, 14);
+      });
+
+      test('storage migrates previous pregnancy_tracker_state_v1 key to bellyhaven_state_v1', () => {
+        const mem = createMemoryStorage({
+          pregnancy_tracker_state_v1: JSON.stringify({
+            profile: { inputMode: 'lmp', dateStr: '2026-03-10', cycleLength: 28 },
+            kicks: { quickCount: 7, sessions: [], activeSession: null }
+          })
+        });
+        const loaded = store.loadState(mem);
+        assertEqual(loaded.profile.dateStr, '2026-03-10');
+        assertEqual(loaded.kicks.quickCount, 7);
+        assertTrue(Boolean(mem.getItem('bellyhaven_state_v1')));
+        assertEqual(mem.getItem('pregnancy_tracker_state_v1'), null);
+      });
+
+      test('storage clears stale 21-day test cycle length and defaults to 28', () => {
+        const mem = createMemoryStorage({
+          bellyhaven_cycle_length: '21',
+          bellyhaven_state_v1: JSON.stringify({
+            profile: { inputMode: 'lmp', dateStr: '2026-03-10', cycleLength: 21 }
+          })
+        });
+        const loaded = store.loadState(mem);
+        assertEqual(loaded.profile.cycleLength, 28);
+        assertEqual(mem.getItem('bellyhaven_cycle_reset_v1'), '1');
+      });
+
+      test('storage sanitizes corrupted kick_count without NaN', () => {
+        const mem = createMemoryStorage({
+          user_lmp: '2026-04-10',
+          kick_count: 'not-a-number'
+        });
+        const loaded = store.loadState(mem);
+        assertEqual(loaded.kicks.quickCount, 0);
+      });
+
+      test('exportBackupJson strips API key and parseImportedBackup round-trips safely', () => {
+        const state = store.createDefaultState();
+        state.profile.dateStr = '2026-05-01';
+        state.kicks.quickCount = 7;
+        state.ai.apiKey = 'secret-test-key';
+        state.ai.chatHistory.push({ id: 'm1', role: 'user', text: 'Hello', createdAtMs: 1000 });
+        const json = store.exportBackupJson(state);
+        const imported = store.parseImportedBackup(json);
+        assertTrue(imported.ok);
+        assertEqual(imported.state.profile.dateStr, '2026-05-01');
+        assertEqual(imported.state.kicks.quickCount, 7);
+        assertEqual(imported.state.ai.apiKey, '');
+        assertEqual(imported.state.ai.chatHistory.length, 1);
+      });
+
+      test('ai-doula detectRedFlags catches urgent symptoms accurately', () => {
+        assertTrue(doula.detectRedFlags('I am having heavy vaginal bleeding right now').isRedFlag);
+        assertTrue(doula.detectRedFlags('Sudden facial swelling and blurred vision').isRedFlag);
+        assertTrue(doula.detectRedFlags('Baby stopped moving since morning').isRedFlag);
+        assertEqual(doula.detectRedFlags('What sleep position is best in 2nd trimester?').isRedFlag, false);
+      });
+
+      test('ai-doula getRecentSymptoms14Days filters to last 14 days and injects context', () => {
+        const ref = calc.parseLocalDate('2026-06-20');
+        const entries = [
+          { dateStr: '2026-06-18', mood: 'Tired', symptoms: ['Fatigue', 'Heartburn'], note: 'Mild reflux' },
+          { dateStr: '2026-06-01', mood: 'Calm', symptoms: ['Nausea'], note: 'Older than 14 days' }
+        ];
+        const recent = doula.getRecentSymptoms14Days(entries, ref);
+        assertEqual(recent.entryCount, 1);
+        assertTrue(recent.symptomsList.includes('Fatigue'));
+        assertEqual(recent.symptomsList.includes('Nausea'), false);
+
+        const stats = calc.calculatePregnancyStats({ mode: 'lmp', dateStr: '2026-03-01', referenceDate: ref });
+        const state = store.createDefaultState();
+        state.journal.entries = entries;
+        const ctx = doula.buildContextData(state, stats, ref);
+        const sysPrompt = doula.buildSystemPrompt(ctx);
+        assertTrue(sysPrompt.includes('Haven AI'));
+        assertTrue(sysPrompt.includes(stats.stageLabel));
+        assertTrue(sysPrompt.includes('Fatigue'));
+        assertTrue(sysPrompt.includes(doula.DISCLAIMER));
+      });
+
+      test('ai-doula offline responses enforce disclaimer and red-flag protocol', () => {
+        const ref = calc.parseLocalDate('2026-06-20');
+        const stats = calc.calculatePregnancyStats({ mode: 'lmp', dateStr: '2026-03-01', referenceDate: ref });
+        const state = store.createDefaultState();
+        state.journal.entries = [{ dateStr: '2026-06-18', symptoms: ['Backache'], note: '' }];
+        const ctx = doula.buildContextData(state, stats, ref);
+
+        const urgent = doula.generateOfflineDoulaResponse('I have heavy bleeding', ctx);
+        assertEqual(urgent.isRedFlag, true);
+        assertTrue(urgent.text.endsWith(doula.DISCLAIMER));
+
+        const questions = doula.generateOfflineDoulaResponse('Generate 3 questions', ctx, { intent: 'doctor-questions' });
+        assertEqual(questions.isRedFlag, false);
+        assertTrue(questions.text.includes('Backache'));
+        assertTrue(questions.text.endsWith(doula.DISCLAIMER));
+      });
+
+      test('haven ai defaults to built-in offline clinical guidance system', async () => {
+        const defState = store.createDefaultState();
+        assertEqual(defState.ai.provider, 'offline');
+        const mem = createMemoryStorage();
+        const loaded = store.loadState(mem);
+        assertEqual(loaded.ai.provider, 'offline');
+
+        const ref = calc.parseLocalDate('2026-06-20');
+        const stats = calc.calculatePregnancyStats({ mode: 'lmp', dateStr: '2026-03-01', referenceDate: ref });
+        const ctx = doula.buildContextData(defState, stats, ref);
+        const res = await doula.fetchAIResponse('What sleep position is best in 2nd trimester?', ctx, {});
+        assertTrue(Boolean(res && res.text));
+        assertTrue(res.sourceLabel.includes('Offline'));
+        assertTrue(res.text.endsWith(doula.DISCLAIMER));
+      });
+
+      test('care-plan saves contacts to bellyhaven_care_contacts and builds safe tel: hrefs', () => {
+        const mem = createMemoryStorage();
+        const saved = carePlan.saveCareContacts(
+          {
+            doctorName: 'Dr. Elena Gomez',
+            clinicName: 'Mercy Pavilion',
+            doctorPhone: '+1 (555) 019-9222',
+            partnerName: 'Alex',
+            partnerPhone: '555-0144'
+          },
+          mem
+        );
+        assertEqual(saved.doctorName, 'Dr. Elena Gomez');
+        assertTrue(Boolean(mem.getItem('bellyhaven_care_contacts')));
+        const loaded = carePlan.loadCareContacts(mem);
+        assertEqual(loaded.clinicName, 'Mercy Pavilion');
+        assertEqual(carePlan.buildTelHref(loaded.doctorPhone), 'tel:+15550199222');
+        assertEqual(carePlan.buildTelHref('+'), '');
+      });
+
+      test('care-plan persists hospital bag items, custom additions, and progress pill', () => {
+        const mem = createMemoryStorage();
+        let bag = carePlan.loadHospitalBag(mem);
+        assertEqual(bag.length, 19);
+        assertEqual(carePlan.getHospitalBagProgress(bag).label, '0 of 19 packed');
+
+        bag = carePlan.toggleHospitalBagItem(bag, 'doc-id-insurance');
+        const addRes = carePlan.addCustomHospitalBagItem(bag, 'Perineal Ice Packs', 'mom');
+        assertTrue(addRes.added);
+        bag = carePlan.saveHospitalBag(addRes.items, mem);
+
+        assertTrue(Boolean(mem.getItem('bellyhaven_hospital_bag')));
+        const reloaded = carePlan.loadHospitalBag(mem);
+        assertEqual(reloaded.length, 20);
+        assertEqual(carePlan.getHospitalBagProgress(reloaded).label, '1 of 20 packed');
+      });
+
+      test('computeRecentKickRatePerHour and computeTodaysKickCount summarize kick activity', () => {
+        const now = new Date(2026, 5, 20, 14, 0, 0);
+        const sameDayMs = now.getTime();
+        const prevDayMs = new Date(2026, 5, 19, 10, 0, 0).getTime();
+        const sessions = Array.from({ length: 8 }, (_, idx) => ({
+          startedAtMs: idx === 0 ? sameDayMs : prevDayMs,
+          count: 10,
+          durationSec: 1800
+        }));
+        const rate = calc.computeRecentKickRatePerHour(sessions, 7);
+        assertEqual(rate.sessionCount, 7);
+        assertEqual(rate.avgKicksPerHour, 20);
+
+        const todaysKicks = calc.computeTodaysKickCount(
+          { quickCount: 3, sessions, activeSession: { startedAtMs: sameDayMs, tapTimestampsMs: [1, 2] } },
+          now
+        );
+        assertEqual(todaysKicks, 15);
+      });
+
+      test('storage preserves journal blood pressure bp vitals cleanly', () => {
+        const clean = store.sanitizeState({
+          profile: { inputMode: 'lmp', dateStr: '2026-03-01', cycleLength: 28 },
+          journal: {
+            entries: [{ dateStr: '2026-06-20', weight: '65 kg', bp: ' 118/76 mmHg ', note: '' }],
+            appointments: []
+          }
+        });
+        assertEqual(clean.journal.entries[0].bp, '118/76 mmHg');
+      });
+
+      test('sound-machine 4-7-8 breathing cadence maps elapsed seconds accurately', () => {
+        const inhale = soundMod.getBreathingPhaseForElapsedSec(2);
+        const hold = soundMod.getBreathingPhaseForElapsedSec(7);
+        const exhale = soundMod.getBreathingPhaseForElapsedSec(15);
+        assertEqual(inhale.phase, 'inhale');
+        assertEqual(hold.phase, 'hold');
+        assertEqual(exhale.phase, 'exhale');
+        assertEqual(soundMod.formatTimerRemaining(900), '15:00');
+      });
+
+      test('computeContractionStats 5-1-1 analyzer detects 45s+ contractions every 4-5 min over 1 hr', () => {
+        const now = 1700000000000;
+        const cluster = [];
+        for (let i = 0; i < 15; i++) {
+          const startMs = now - (14 - i) * 4.5 * 60 * 1000; // ~63 min span, 4.5 min apart
+          cluster.push({ id: `f_${i}`, startMs, endMs: startMs + 48 * 1000, intensity: 'Moderate' });
+        }
+        const res = calc.computeContractionStats(cluster, now + 2000);
+        assertEqual(res.isFiveOneOnePattern, true);
+        assertEqual(res.fiveOneOne.analyzerPhase, 'matched');
+      });
+
+      test('baby-notes provides tender notes for every week 4 through 40', () => {
+        for (let w = 4; w <= 40; w++) {
+          const n = babyNotesMod.getBabyNote(w);
+          assertEqual(n.week, w);
+          assertTrue(typeof n.message === 'string' && n.message.length > 40);
+          assertTrue(typeof n.signOff === 'string' && n.signOff.includes('Baby'));
+        }
+      });
+
+      test('weight-tracker calculates ACOG BMI categories, 40w trajectories, and smooth SVG curves', () => {
+        const uw = weightMod.computeBaselineBmi(46, 165);
+        const nm = weightMod.computeBaselineBmi(60, 165);
+        const ow = weightMod.computeBaselineBmi(75, 165);
+        assertEqual(uw.categoryLabel, 'Underweight');
+        assertEqual(nm.categoryLabel, 'Normal');
+        assertEqual(ow.categoryLabel, 'Overweight');
+
+        const w40 = weightMod.getRecommendedGainAtWeekKg(40, 'normal');
+        assertEqual(w40.minGainKg, 11.5);
+        assertEqual(w40.maxGainKg, 16.0);
+
+        const parsedLbs = weightMod.parseJournalWeightKg('140 lbs');
+        assertTrue(parsedLbs > 63 && parsedLbs < 64);
+
+        const model = weightMod.computeWeightChartModel({
+          unit: 'kg',
+          preWeightKg: 60,
+          heightCm: 165,
+          currentWeek: 24,
+          lmpDate: calc.parseLocalDate('2026-01-01'),
+          calc,
+          journalEntries: [
+            { dateStr: '2026-03-12', weight: '61.5 kg' },
+            { dateStr: '2026-04-23', weight: '63.8 kg' },
+            { dateStr: '2026-06-18', weight: '67.2 kg' }
+          ]
+        });
+        assertEqual(model.userCoords.length, 3);
+        assertTrue(model.userPathD.startsWith('M ') && model.userPathD.includes(' C '));
+      });
+
+      test('storage preserves weightTracker preferences safely', () => {
+        const sanitized = store.sanitizeState({
+          weightTracker: { unit: 'lbs', preWeightKg: 61.5, heightCm: 166 }
+        });
+        assertEqual(sanitized.weightTracker.unit, 'lbs');
+        assertEqual(sanitized.weightTracker.preWeightKg, 61.5);
+        assertEqual(sanitized.weightTracker.heightCm, 166);
+      });
+
+      test('birthPlan toggles all 16 preferences, persists offline, and builds 1-page print sheet', () => {
+        birthPlanMod.clearBirthPlanStorage();
+        assertEqual(birthPlanMod.BIRTH_PLAN_CATEGORIES.length, 4);
+        const totalOptions = birthPlanMod.BIRTH_PLAN_CATEGORIES.reduce(
+          (sum, cat) => sum + cat.options.length,
+          0
+        );
+        assertEqual(totalOptions, 16);
+
+        let plan = birthPlanMod.createDefaultBirthPlan();
+        plan = birthPlanMod.togglePreference(plan, 'dim-lighting');
+        plan = birthPlanMod.togglePreference(plan, 'delayed-cord');
+        plan.specialNotes = 'Lavender diffuser if permitted\nCall doula on admission';
+        birthPlanMod.saveBirthPlan(plan);
+
+        const reloaded = birthPlanMod.loadBirthPlan();
+        assertEqual(birthPlanMod.countSelectedPreferences(reloaded), 2);
+        assertTrue(reloaded.specialNotes.includes('Call doula'));
+
+        const frag = birthPlanMod.buildBirthPlanPrintFragment({
+          birthPlan: reloaded,
+          stats: calc.calculatePregnancyStats({ mode: 'lmp', dateStr: '2026-01-01', cycleLength: 28 }),
+          careContacts: {
+            doctorName: 'Dr. Rivera',
+            clinicName: 'Mercy Women Center',
+            doctorPhone: '555-0140',
+            partnerName: 'Alex',
+            partnerPhone: '555-0188'
+          }
+        });
+        const holder = document.createElement('div');
+        holder.appendChild(frag);
+        const text = holder.textContent || '';
+        assertTrue(text.includes('BellyHaven Maternal Birth Preferences'));
+        assertTrue(text.includes('Dim / Soft Lighting'));
+        assertTrue(text.includes('Delayed Cord Clamping'));
+        assertTrue(text.includes('Mercy Women Center'));
+        assertTrue(text.includes('Attending Labor & Delivery Staff'));
+        birthPlanMod.clearBirthPlanStorage();
+      });
+
+      test('blossom paywall enforces 1 free export, 3 daily Haven AI queries, and unlocks cleanly', () => {
+        blossomMod.clearBlossomTestingState();
+        assertEqual(blossomMod.isUnlocked(), false);
+
+        // 1st export preview allowed, 2nd triggers paywall
+        assertTrue(blossomMod.consumeExportGate().allowed);
+        assertEqual(blossomMod.consumeExportGate().allowed, false);
+
+        // 3 Haven AI queries/day allowed, 4th triggers paywall
+        assertTrue(blossomMod.consumeAiQueryGate('2026-11-11').allowed);
+        assertTrue(blossomMod.consumeAiQueryGate('2026-11-11').allowed);
+        assertTrue(blossomMod.consumeAiQueryGate('2026-11-11').allowed);
+        assertEqual(blossomMod.consumeAiQueryGate('2026-11-11').allowed, false);
+
+        // Next calendar day resets daily allowance
+        assertTrue(blossomMod.consumeAiQueryGate('2026-11-12').allowed);
+
+        // Dual tier plans & PayPal purchase capture unlock
+        assertEqual(blossomMod.getPlan('monthly').amount, '4.99');
+        assertEqual(blossomMod.getPlan('monthly').checkoutLabel, 'Monthly Flexibility — $4.99 USD / Month');
+        assertEqual(blossomMod.getPlan('onetime').amount, '19.99');
+        assertEqual(blossomMod.getPlan('onetime').strikeDisplay, '$47.99');
+        assertEqual(blossomMod.getPlan('onetime').badge, 'Save ~58% • Most Popular');
+        assertEqual(blossomMod.getPlan('onetime').checkoutLabel, 'Full Journey Pass — $19.99 USD One-Time');
+
+        const onetimePayload = blossomMod.buildOrderPayload('onetime');
+        assertEqual(onetimePayload.purchase_units[0].description, 'BellyHaven Blossom Full Journey Pass');
+        assertEqual(onetimePayload.purchase_units[0].amount.currency_code, 'USD');
+        assertEqual(onetimePayload.purchase_units[0].amount.value, '19.99');
+
+        const monthlyPayload = blossomMod.buildOrderPayload('monthly');
+        assertEqual(monthlyPayload.purchase_units[0].amount.value, '4.99');
+
+        assertTrue(blossomMod.PAYPAL_CONFIG.clientId !== 'YOUR_PAYPAL_CLIENT_ID');
+        assertEqual(blossomMod.PAYPAL_CONFIG.clientId.length, 80);
+        const sdkUrl = blossomMod.buildPayPalSdkUrl();
+        assertTrue(sdkUrl.includes(`client-id=${blossomMod.PAYPAL_CONFIG.clientId}`));
+        assertTrue(sdkUrl.includes('currency=USD'));
+        assertTrue(sdkUrl.includes('&components=buttons,applepay,googlepay&enable-funding=card,venmo,paylater'));
+
+        blossomMod.recordPurchaseUnlock({ id: 'ORDER-TEST-99' }, 'onetime');
+        assertTrue(blossomMod.isUnlocked());
+        assertTrue(blossomMod.consumeExportGate().allowed);
+        assertTrue(blossomMod.consumeAiQueryGate('2026-11-11').allowed);
+
+        // Developer unlock + reset helpers clear both keys and reset isBlossomUnlocked()
+        blossomMod.clearBlossomTestingState();
+        assertEqual(blossomMod.isBlossomUnlocked(), false);
+        assertEqual(window.isBlossomUnlocked(), false);
+        assertEqual(typeof window.__unlockBellyHaven, 'function');
+        assertEqual(typeof window.__resetBellyHaven, 'function');
+        window.__unlockBellyHaven({ reload: false });
+        assertEqual(localStorage.getItem('bellyhaven_blossom_unlocked'), 'true');
+        assertTrue(blossomMod.isBlossomUnlocked());
+        assertTrue(window.isBlossomUnlocked());
+        assertTrue(blossomMod.consumeExportGate().allowed);
+        assertTrue(blossomMod.consumeAiQueryGate('2026-11-11').allowed);
+
+        localStorage.setItem('bellyhaven_free_pdf_used', 'true');
+        window.__resetBellyHaven({ reload: false });
+        assertEqual(localStorage.getItem('bellyhaven_blossom_unlocked'), null);
+        assertEqual(localStorage.getItem('bellyhaven_free_pdf_used'), null);
+        assertEqual(localStorage.getItem('bellyhaven_free_export_used'), null);
+        assertEqual(blossomMod.isBlossomUnlocked(), false);
+        assertEqual(window.isBlossomUnlocked(), false);
+        blossomMod.clearBlossomTestingState();
+      });
+
+      test('blossom renderPayPalButtons configures vertical layout, $19.99 order, and onApprove unlock', async () => {
+        blossomMod.clearBlossomTestingState();
+        const ppHost = document.createElement('div');
+        const statusEl = document.createElement('p');
+        let capturedStyle = null;
+        let capturedOrder = null;
+        let approvedReceipt = null;
+        const prevPaypal = window.paypal;
+        window.paypal = {
+          Buttons: (cfg) => ({
+            render: async (el) => {
+              capturedStyle = cfg.style;
+              capturedOrder = cfg.createOrder(null, {
+                order: { create: (payload) => payload }
+              });
+              const fakeBtn = document.createElement('button');
+              fakeBtn.type = 'button';
+              fakeBtn.textContent = 'PayPal Checkout Mock';
+              el.appendChild(fakeBtn);
+              await cfg.onApprove(
+                { orderID: 'MOCK-ORDER-1999' },
+                { order: { capture: async () => ({ id: 'CAP-1999' }) } }
+              );
+            }
+          })
+        };
+        try {
+          const res = await blossomMod.renderPayPalButtons({
+            container: ppHost,
+            statusEl,
+            getSelectedPlanId: () => 'onetime',
+            onSuccess: (receipt) => {
+              approvedReceipt = receipt;
+            }
+          });
+          assertEqual(res.status, 'rendered');
+          assertEqual(capturedStyle.layout, 'vertical');
+          assertEqual(capturedOrder.purchase_units[0].amount.currency_code, 'USD');
+          assertEqual(capturedOrder.purchase_units[0].amount.value, '19.99');
+          assertEqual(ppHost.querySelectorAll('button').length, 1);
+          assertEqual(localStorage.getItem('bellyhaven_blossom_unlocked'), 'true');
+          assertTrue(blossomMod.isBlossomUnlocked());
+          assertTrue(Boolean(approvedReceipt && approvedReceipt.orderId));
+        } finally {
+          window.paypal = prevPaypal;
+          blossomMod.clearBlossomTestingState();
+        }
+      });
+
+      const resultsList = document.getElementById('results');
+      const summaryEl = document.getElementById('summary');
+
+      (async () => {
+        let passed = 0;
+        for (const t of tests) {
+          const li = document.createElement('li');
+          try {
+            await t.fn();
+            passed++;
+            li.className = 'pass';
+            li.textContent = `PASS: ${t.name}`;
+          } catch (err) {
+            li.className = 'fail';
+            li.textContent = `FAIL: ${t.name} — ${err.message}`;
+          }
+          resultsList.appendChild(li);
+        }
+
+        summaryEl.textContent = `${passed} / ${tests.length} tests passed`;
+        summaryEl.className = `summary ${passed === tests.length ? 'pass' : 'fail'}`;
+      })();
+    })(
+      window.PregnancyCalc,
+      window.PregnancyStorage,
+      window.PregnancyDoula,
+      window.BellyHavenCarePlan,
+      window.BellyHavenSoundMachine,
+      window.BellyHavenBabyNotes,
+      window.BellyHavenWeightTracker,
+      window.BellyHavenBirthPlan,
+      window.BellyHavenBlossom
+    );
+  </script>
+</body>
+</html>

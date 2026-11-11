@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200" role="img" aria-label="Lentil watercolor illustration">
+  <defs>
+    <radialGradient id="bgHalo" cx="46%" cy="42%" r="54%">
+      <stop offset="0%" stop-color="#fff9fa" stop-opacity="0.95"/>
+      <stop offset="55%" stop-color="#f9ddd4" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#f7dce0" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="leafSage" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#b6d6be"/>
+      <stop offset="55%" stop-color="#87b296"/>
+      <stop offset="100%" stop-color="#648f73"/>
+    </linearGradient>
+    <linearGradient id="stemWood" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#b08e7b"/>
+      <stop offset="100%" stop-color="#7c5d4e"/>
+    </linearGradient>
+    <filter id="washBlur" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8"/>
+    </filter>
+    <filter id="paintBlur" x="-15%" y="-15%" width="130%" height="130%">
+      <feGaussianBlur stdDeviation="2.4"/>
+    </filter>
+        <radialGradient id="lentilCoral" cx="35%" cy="32%" r="68%">
+      <stop offset="0%" stop-color="#f7be9f"/>
+      <stop offset="55%" stop-color="#e38d6d"/>
+      <stop offset="100%" stop-color="#b96249"/>
+    </radialGradient>
+    <radialGradient id="lentilAmber" cx="36%" cy="32%" r="68%">
+      <stop offset="0%" stop-color="#fae0b4"/>
+      <stop offset="65%" stop-color="#dfb074"/>
+      <stop offset="100%" stop-color="#b5834b"/>
+    </radialGradient>
+  </defs>
+  <circle cx="98" cy="96" r="76" fill="url(#bgHalo)"/>
+  <ellipse cx="106" cy="104" rx="58" ry="52" fill="#f9ddd4" opacity="0.34" filter="url(#washBlur)"/>
+  <ellipse cx="100" cy="165" rx="38" ry="9" fill="#c99ca6" opacity="0.28" filter="url(#paintBlur)"/>
+    <path d="M100 94 C100 72 116 58 134 56 C130 74 114 88 100 94 Z" fill="url(#leafSage)"/>
+  <circle cx="92" cy="108" r="24" fill="url(#lentilCoral)"/>
+  <ellipse cx="85" cy="99" rx="9" ry="5" fill="#fde5d9" opacity="0.55" transform="rotate(-24 85 99)"/>
+  <circle cx="122" cy="126" r="19" fill="url(#lentilAmber)"/>
+  <ellipse cx="116" cy="119" rx="7" ry="4" fill="#fff7e5" opacity="0.55" transform="rotate(-22 116 119)"/>
+  <circle cx="72" cy="136" r="16" fill="url(#lentilCoral)" opacity="0.92"/>
+  <ellipse cx="67" cy="130" rx="5.5" ry="3" fill="#fde5d9" opacity="0.5" transform="rotate(-20 67 130)"/>
+</svg>

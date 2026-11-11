@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200" role="img" aria-label="Honeydew watercolor illustration">
+  <defs>
+    <radialGradient id="bgHalo" cx="46%" cy="42%" r="54%">
+      <stop offset="0%" stop-color="#fff9fa" stop-opacity="0.95"/>
+      <stop offset="55%" stop-color="#e5f2db" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#f7dce0" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="leafSage" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#b6d6be"/>
+      <stop offset="55%" stop-color="#87b296"/>
+      <stop offset="100%" stop-color="#648f73"/>
+    </linearGradient>
+    <linearGradient id="stemWood" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#b08e7b"/>
+      <stop offset="100%" stop-color="#7c5d4e"/>
+    </linearGradient>
+    <filter id="washBlur" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8"/>
+    </filter>
+    <filter id="paintBlur" x="-15%" y="-15%" width="130%" height="130%">
+      <feGaussianBlur stdDeviation="2.4"/>
+    </filter>
+        <radialGradient id="honeyRind" cx="36%" cy="32%" r="70%">
+      <stop offset="0%" stop-color="#f7fae0"/>
+      <stop offset="60%" stop-color="#d7e4b6"/>
+      <stop offset="100%" stop-color="#aabf82"/>
+    </radialGradient>
+    <radialGradient id="honeyFlesh" cx="45%" cy="45%" r="60%">
+      <stop offset="0%" stop-color="#f5fae5"/>
+      <stop offset="70%" stop-color="#cee6ab"/>
+      <stop offset="100%" stop-color="#9dc078"/>
+    </radialGradient>
+  </defs>
+  <circle cx="98" cy="96" r="76" fill="url(#bgHalo)"/>
+  <ellipse cx="106" cy="104" rx="58" ry="52" fill="#e5f2db" opacity="0.34" filter="url(#washBlur)"/>
+  <ellipse cx="100" cy="165" rx="46" ry="9" fill="#c99ca6" opacity="0.28" filter="url(#paintBlur)"/>
+    <ellipse cx="94" cy="96" rx="44" ry="42" fill="url(#honeyRind)"/>
+  <ellipse cx="78" cy="78" rx="14" ry="10" fill="#ffffff" opacity="0.48" filter="url(#paintBlur)" transform="rotate(-18 78 78)"/>
+  <path d="M78 136 C100 162 150 158 162 124 L138 116 C128 132 104 136 86 122 Z" fill="#89a864"/>
+  <path d="M82 132 C102 154 144 150 156 122 L138 116 C128 132 104 134 86 122 Z" fill="url(#honeyFlesh)"/>
+</svg>

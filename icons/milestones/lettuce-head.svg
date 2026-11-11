@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200" role="img" aria-label="Lettuce Head watercolor illustration">
+  <defs>
+    <radialGradient id="bgHalo" cx="46%" cy="42%" r="54%">
+      <stop offset="0%" stop-color="#fff9fa" stop-opacity="0.95"/>
+      <stop offset="55%" stop-color="#def0df" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#f7dce0" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="leafSage" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#b6d6be"/>
+      <stop offset="55%" stop-color="#87b296"/>
+      <stop offset="100%" stop-color="#648f73"/>
+    </linearGradient>
+    <linearGradient id="stemWood" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#b08e7b"/>
+      <stop offset="100%" stop-color="#7c5d4e"/>
+    </linearGradient>
+    <filter id="washBlur" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8"/>
+    </filter>
+    <filter id="paintBlur" x="-15%" y="-15%" width="130%" height="130%">
+      <feGaussianBlur stdDeviation="2.4"/>
+    </filter>
+        <radialGradient id="lettuceOuter" cx="40%" cy="34%" r="68%">
+      <stop offset="0%" stop-color="#dff2cf"/>
+      <stop offset="60%" stop-color="#a6d29c"/>
+      <stop offset="100%" stop-color="#6fa374"/>
+    </radialGradient>
+    <radialGradient id="lettuceInner" cx="42%" cy="36%" r="64%">
+      <stop offset="0%" stop-color="#f2fad9"/>
+      <stop offset="65%" stop-color="#c3e5a8"/>
+      <stop offset="100%" stop-color="#8ec186"/>
+    </radialGradient>
+  </defs>
+  <circle cx="98" cy="96" r="76" fill="url(#bgHalo)"/>
+  <ellipse cx="106" cy="104" rx="58" ry="52" fill="#def0df" opacity="0.34" filter="url(#washBlur)"/>
+  <ellipse cx="100" cy="165" rx="46" ry="9" fill="#c99ca6" opacity="0.28" filter="url(#paintBlur)"/>
+    <path d="M100 50 C74 44 52 64 52 94 C44 114 54 146 84 150 C100 154 118 152 134 142 C154 128 156 96 142 74 C132 54 116 50 100 50 Z" fill="url(#lettuceOuter)"/>
+  <path d="M98 62 C78 60 66 78 68 100 C66 124 84 140 106 138 C128 136 140 116 132 92 C126 74 112 64 98 62 Z" fill="url(#lettuceInner)"/>
+  <path d="M82 94 C88 80 112 78 118 96 C122 112 106 126 92 120" fill="none" stroke="#fffef2" stroke-width="3" stroke-linecap="round" opacity="0.65"/>
+  <path d="M74 118 C82 132 108 138 124 124" fill="none" stroke="#649469" stroke-width="2" stroke-linecap="round" opacity="0.45"/>
+</svg>

@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200" role="img" aria-label="Jackfruit watercolor illustration">
+  <defs>
+    <radialGradient id="bgHalo" cx="46%" cy="42%" r="54%">
+      <stop offset="0%" stop-color="#fff9fa" stop-opacity="0.95"/>
+      <stop offset="55%" stop-color="#ebf1d0" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#f7dce0" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="leafSage" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#b6d6be"/>
+      <stop offset="55%" stop-color="#87b296"/>
+      <stop offset="100%" stop-color="#648f73"/>
+    </linearGradient>
+    <linearGradient id="stemWood" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#b08e7b"/>
+      <stop offset="100%" stop-color="#7c5d4e"/>
+    </linearGradient>
+    <filter id="washBlur" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8"/>
+    </filter>
+    <filter id="paintBlur" x="-15%" y="-15%" width="130%" height="130%">
+      <feGaussianBlur stdDeviation="2.4"/>
+    </filter>
+        <radialGradient id="jackGrad" cx="38%" cy="32%" r="72%">
+      <stop offset="0%" stop-color="#f2ecaa"/>
+      <stop offset="55%" stop-color="#c9d47c"/>
+      <stop offset="100%" stop-color="#92a452"/>
+    </radialGradient>
+  </defs>
+  <circle cx="98" cy="96" r="76" fill="url(#bgHalo)"/>
+  <ellipse cx="106" cy="104" rx="58" ry="52" fill="#ebf1d0" opacity="0.34" filter="url(#washBlur)"/>
+  <ellipse cx="100" cy="165" rx="48" ry="9" fill="#c99ca6" opacity="0.28" filter="url(#paintBlur)"/>
+    <path d="M104 46 C106 36 112 30 118 28" fill="none" stroke="url(#stemWood)" stroke-width="5" stroke-linecap="round"/>
+  <path d="M104 46 C122 36 142 38 146 52 C130 58 114 54 104 46 Z" fill="url(#leafSage)"/>
+  <ellipse cx="100" cy="102" rx="42" ry="50" fill="url(#jackGrad)" transform="rotate(8 100 102)"/>
+  <g fill="#7e9144" opacity="0.45">
+    <circle cx="84" cy="76" r="2"/><circle cx="102" cy="74" r="2"/><circle cx="118" cy="78" r="2"/>
+    <circle cx="76" cy="94" r="2"/><circle cx="94" cy="92" r="2"/><circle cx="112" cy="94" r="2"/><circle cx="126" cy="96" r="2"/>
+    <circle cx="78" cy="112" r="2"/><circle cx="96" cy="110" r="2"/><circle cx="114" cy="112" r="2"/><circle cx="124" cy="116" r="2"/>
+    <circle cx="88" cy="128" r="2"/><circle cx="106" cy="128" r="2"/>
+  </g>
+  <ellipse cx="82" cy="78" rx="10" ry="16" fill="#fcfce4" opacity="0.45" filter="url(#paintBlur)"/>
+</svg>

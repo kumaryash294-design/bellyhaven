@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200" role="img" aria-label="Strawberry watercolor illustration">
+  <defs>
+    <radialGradient id="bgHalo" cx="46%" cy="42%" r="54%">
+      <stop offset="0%" stop-color="#fff9fa" stop-opacity="0.95"/>
+      <stop offset="55%" stop-color="#fad7dd" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#f7dce0" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="leafSage" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#b6d6be"/>
+      <stop offset="55%" stop-color="#87b296"/>
+      <stop offset="100%" stop-color="#648f73"/>
+    </linearGradient>
+    <linearGradient id="stemWood" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#b08e7b"/>
+      <stop offset="100%" stop-color="#7c5d4e"/>
+    </linearGradient>
+    <filter id="washBlur" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8"/>
+    </filter>
+    <filter id="paintBlur" x="-15%" y="-15%" width="130%" height="130%">
+      <feGaussianBlur stdDeviation="2.4"/>
+    </filter>
+        <radialGradient id="strawGrad" cx="35%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#f89ca6"/>
+      <stop offset="55%" stop-color="#de6070"/>
+      <stop offset="100%" stop-color="#b23c4c"/>
+    </radialGradient>
+  </defs>
+  <circle cx="98" cy="96" r="76" fill="url(#bgHalo)"/>
+  <ellipse cx="106" cy="104" rx="58" ry="52" fill="#fad7dd" opacity="0.34" filter="url(#washBlur)"/>
+  <ellipse cx="100" cy="165" rx="40" ry="9" fill="#c99ca6" opacity="0.28" filter="url(#paintBlur)"/>
+    <path d="M100 54 C76 54 62 72 64 96 C66 124 86 148 100 152 C114 148 134 124 136 96 C138 72 124 54 100 54 Z" fill="url(#strawGrad)"/>
+  <ellipse cx="82" cy="82" rx="10" ry="18" fill="#fdd0d6" opacity="0.38" filter="url(#paintBlur)" transform="rotate(-14 82 82)"/>
+  <path d="M68 62 C78 52 90 52 100 58 C110 52 122 52 132 62 C120 66 110 64 100 68 C90 64 80 66 68 62 Z" fill="url(#leafSage)"/>
+  <path d="M100 56 C100 44 104 38 110 34" fill="none" stroke="url(#stemWood)" stroke-width="3.5" stroke-linecap="round"/>
+  <g fill="#fce2b6">
+    <ellipse cx="84" cy="84" rx="1.8" ry="2.8"/>
+    <ellipse cx="102" cy="82" rx="1.8" ry="2.8"/>
+    <ellipse cx="118" cy="86" rx="1.8" ry="2.8"/>
+    <ellipse cx="78" cy="102" rx="1.8" ry="2.8"/>
+    <ellipse cx="94" cy="100" rx="1.8" ry="2.8"/>
+    <ellipse cx="110" cy="102" rx="1.8" ry="2.8"/>
+    <ellipse cx="122" cy="104" rx="1.8" ry="2.8"/>
+    <ellipse cx="86" cy="120" rx="1.8" ry="2.8"/>
+    <ellipse cx="102" cy="120" rx="1.8" ry="2.8"/>
+    <ellipse cx="114" cy="122" rx="1.8" ry="2.8"/>
+    <ellipse cx="98" cy="136" rx="1.8" ry="2.8"/>
+  </g>
+</svg>

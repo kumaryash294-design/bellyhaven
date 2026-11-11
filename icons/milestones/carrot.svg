@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200" role="img" aria-label="Carrot watercolor illustration">
+  <defs>
+    <radialGradient id="bgHalo" cx="46%" cy="42%" r="54%">
+      <stop offset="0%" stop-color="#fff9fa" stop-opacity="0.95"/>
+      <stop offset="55%" stop-color="#fbe2d1" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#f7dce0" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="leafSage" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#b6d6be"/>
+      <stop offset="55%" stop-color="#87b296"/>
+      <stop offset="100%" stop-color="#648f73"/>
+    </linearGradient>
+    <linearGradient id="stemWood" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#b08e7b"/>
+      <stop offset="100%" stop-color="#7c5d4e"/>
+    </linearGradient>
+    <filter id="washBlur" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8"/>
+    </filter>
+    <filter id="paintBlur" x="-15%" y="-15%" width="130%" height="130%">
+      <feGaussianBlur stdDeviation="2.4"/>
+    </filter>
+        <linearGradient id="carrotGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f9b583"/>
+      <stop offset="55%" stop-color="#ec8654"/>
+      <stop offset="100%" stop-color="#c96038"/>
+    </linearGradient>
+  </defs>
+  <circle cx="98" cy="96" r="76" fill="url(#bgHalo)"/>
+  <ellipse cx="106" cy="104" rx="58" ry="52" fill="#fbe2d1" opacity="0.34" filter="url(#washBlur)"/>
+  <ellipse cx="100" cy="165" rx="42" ry="9" fill="#c99ca6" opacity="0.28" filter="url(#paintBlur)"/>
+    <g transform="rotate(34 102 104)">
+    <path d="M98 60 C84 38 74 28 66 26 M100 58 C100 34 100 24 102 18 M104 60 C116 38 128 30 136 28" fill="none" stroke="#7fb08d" stroke-width="5" stroke-linecap="round"/>
+    <path d="M78 66 C78 56 122 56 122 66 C122 96 110 144 102 168 C100 172 98 172 96 168 C88 144 78 96 78 66 Z" fill="url(#carrotGrad)"/>
+    <path d="M84 82 H98 M104 98 H116 M88 116 H100 M100 134 H108" stroke="#be5532" stroke-width="2.2" stroke-linecap="round" opacity="0.45"/>
+    <ellipse cx="90" cy="90" rx="5" ry="18" fill="#ffe1ca" opacity="0.42" filter="url(#paintBlur)"/>
+  </g>
+</svg>

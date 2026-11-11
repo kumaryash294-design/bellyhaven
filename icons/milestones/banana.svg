@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200" role="img" aria-label="Banana watercolor illustration">
+  <defs>
+    <radialGradient id="bgHalo" cx="46%" cy="42%" r="54%">
+      <stop offset="0%" stop-color="#fff9fa" stop-opacity="0.95"/>
+      <stop offset="55%" stop-color="#fbf0cb" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#f7dce0" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="leafSage" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#b6d6be"/>
+      <stop offset="55%" stop-color="#87b296"/>
+      <stop offset="100%" stop-color="#648f73"/>
+    </linearGradient>
+    <linearGradient id="stemWood" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#b08e7b"/>
+      <stop offset="100%" stop-color="#7c5d4e"/>
+    </linearGradient>
+    <filter id="washBlur" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8"/>
+    </filter>
+    <filter id="paintBlur" x="-15%" y="-15%" width="130%" height="130%">
+      <feGaussianBlur stdDeviation="2.4"/>
+    </filter>
+        <linearGradient id="bananaGrad" x1="10%" y1="10%" x2="90%" y2="90%">
+      <stop offset="0%" stop-color="#fff4b8"/>
+      <stop offset="55%" stop-color="#f7dc79"/>
+      <stop offset="100%" stop-color="#dfb84b"/>
+    </linearGradient>
+  </defs>
+  <circle cx="98" cy="96" r="76" fill="url(#bgHalo)"/>
+  <ellipse cx="106" cy="104" rx="58" ry="52" fill="#fbf0cb" opacity="0.34" filter="url(#washBlur)"/>
+  <ellipse cx="100" cy="165" rx="52" ry="9" fill="#c99ca6" opacity="0.28" filter="url(#paintBlur)"/>
+    <path d="M46 116 C64 150 124 150 152 84 C156 72 152 54 146 48 L138 52 C138 66 126 102 96 116 C74 126 56 120 46 110 C42 112 44 114 46 116 Z" fill="url(#bananaGrad)"/>
+  <path d="M146 48 C150 42 152 38 156 36" fill="none" stroke="url(#stemWood)" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="44" cy="113" r="3" fill="#8b6b4c"/>
+  <path d="M62 126 C92 132 128 116 142 74" fill="none" stroke="#fffbe0" stroke-width="4" stroke-linecap="round" opacity="0.6"/>
+</svg>
