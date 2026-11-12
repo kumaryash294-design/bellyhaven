@@ -7,6 +7,7 @@
 })(typeof window !== 'undefined' ? window : globalThis, function (root) {
   'use strict';
 
+  const PRO_KEY = 'bellyhaven_pro';
   const UNLOCK_KEY = 'bellyhaven_blossom_unlocked';
   const RECEIPT_KEY = 'bellyhaven_blossom_receipt';
   const FREE_EXPORT_KEY = 'bellyhaven_free_export_used';
@@ -82,12 +83,19 @@
     }
   }
 
-  function isBlossomUnlocked() {
+  function isBlossomPro() {
+    const proFlag = safeGet(PRO_KEY);
+    if (proFlag === 'true') return true;
+    if (proFlag === 'false') return false;
     return safeGet(UNLOCK_KEY) === 'true';
   }
 
+  function isBlossomUnlocked() {
+    return isBlossomPro();
+  }
+
   function isUnlocked() {
-    return isBlossomUnlocked();
+    return isBlossomPro();
   }
 
   function getPlan(planId) {
@@ -132,6 +140,7 @@
         details.payer && details.payer.email_address ? String(details.payer.email_address) : '',
       unlockedAtIso: new Date().toISOString()
     };
+    safeSet(PRO_KEY, 'true');
     safeSet(UNLOCK_KEY, 'true');
     safeSet(RECEIPT_KEY, JSON.stringify(receipt));
     return receipt;
@@ -212,6 +221,7 @@
   }
 
   function clearBlossomTestingState() {
+    safeRemove(PRO_KEY);
     safeRemove(UNLOCK_KEY);
     safeRemove(RECEIPT_KEY);
     safeRemove(FREE_EXPORT_KEY);
@@ -421,9 +431,11 @@
 
   // Expose developer & QA sandbox bypass and reset helpers globally
   if (root) {
+    root.isBlossomPro = isBlossomPro;
     root.isBlossomUnlocked = isBlossomUnlocked;
 
     root.__unlockBellyHaven = function (options = {}) {
+      safeSet(PRO_KEY, 'true');
       safeSet(UNLOCK_KEY, 'true');
       safeSet(
         RECEIPT_KEY,
@@ -453,6 +465,7 @@
   }
 
   return {
+    PRO_KEY,
     UNLOCK_KEY,
     RECEIPT_KEY,
     FREE_EXPORT_KEY,
@@ -461,6 +474,7 @@
     AI_DAILY_LIMIT,
     PAYPAL_CONFIG,
     PLANS,
+    isBlossomPro,
     isBlossomUnlocked,
     isUnlocked,
     getPlan,

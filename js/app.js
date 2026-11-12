@@ -4,7 +4,12 @@
   const RING_RADIUS = 56;
   const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
   const KICK_TARGET = 10;
+  const FREE_KICK_HISTORY_LIMIT = 3;
   const CELEBRATION_STORAGE_KEY = 'bellyhaven_celebrated_tier_v1';
+  const WEEK_ARCHIVE_PAYWALL_MSG =
+    'Unlock all 40 weeks of Baby Letters & future milestone previews with Blossom PRO.';
+  const KICK_HISTORY_PAYWALL_MSG =
+    'Unlock Unlimited Kick History ✨ across all 40 weeks with BellyHaven Blossom PRO.';
 
   const triggerHaptic = (pattern = 15) => {
     if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
@@ -121,6 +126,12 @@
     // A Note from Baby
     dom.babyNoteCard = $('baby-note-card');
     dom.babyNoteWeekPill = $('baby-note-week-pill');
+    dom.browseAllWeeksBtn = $('browse-all-weeks-btn');
+    dom.browseWeeksLockBadge = $('browse-weeks-lock-badge');
+    dom.babyNoteWeekDrawer = $('baby-note-week-drawer');
+    dom.babyNoteDrawerHint = $('baby-note-drawer-hint');
+    dom.babyNoteCurrentWeekBtn = $('baby-note-current-week-btn');
+    dom.babyNoteWeekPills = $('baby-note-week-pills');
     dom.babyNoteListenBtn = $('baby-note-listen-btn');
     dom.babyNoteListenLabel = $('baby-note-listen-label');
     dom.babyNoteTitle = $('baby-note-title');
@@ -470,8 +481,36 @@
     return `${stats.daysRemaining} day${stats.daysRemaining === 1 ? '' : 's'} remaining`;
   }
 
+  function isBlossomPro() {
+    try {
+      if (typeof localStorage !== 'undefined') {
+        const proFlag = localStorage.getItem('bellyhaven_pro');
+        if (proFlag === 'true') return true;
+        if (proFlag === 'false') return false;
+      }
+    } catch (_) {
+      // Ignore restricted storage access
+    }
+    return Boolean(blossomMod && blossomMod.isBlossomUnlocked());
+  }
+
+  function getCurrentMilestoneWeek(stats) {
+    const raw = stats && Number.isFinite(stats.weeks) ? stats.weeks : 4;
+    return Math.max(4, Math.min(42, raw));
+  }
+
+  function getCurrentBabyNoteWeek(stats) {
+    const raw = stats && Number.isFinite(stats.weeks) ? stats.weeks : 4;
+    return Math.max(4, Math.min(40, raw));
+  }
+
   function renderMilestoneCard(currentWeek) {
+    const pro = isBlossomPro();
     const clampedCurrent = Math.max(0, Math.min(42, currentWeek));
+    const currentMin4 = Math.max(4, clampedCurrent);
+    if (!pro && previewMilestoneWeek !== null && previewMilestoneWeek !== currentMin4) {
+      previewMilestoneWeek = null;
+    }
     const shownWeek = previewMilestoneWeek !== null ? previewMilestoneWeek : clampedCurrent;
     const milestone = calc.getMilestone(shownWeek);
     const hasWeekChanged =
@@ -502,13 +541,27 @@
     }
 
     lastRenderedMilestoneWeek = shownWeek;
-    preloadMilestoneImage(shownWeek - 1);
-    preloadMilestoneImage(shownWeek + 1);
+    if (pro) {
+      preloadMilestoneImage(shownWeek - 1);
+      preloadMilestoneImage(shownWeek + 1);
+    }
 
+    const stepperEl = dom.milestonePrevWeek ? dom.milestonePrevWeek.closest('.week-stepper') : null;
+    if (stepperEl) {
+      stepperEl.classList.toggle('is-pro-locked', !pro);
+    }
     dom.milestonePrevWeek.disabled = shownWeek <= 4;
     dom.milestoneNextWeek.disabled = shownWeek >= 42;
+    dom.milestonePrevWeek.setAttribute(
+      'aria-label',
+      pro ? 'Previous week' : 'Previous week (Unlock with Blossom PRO)'
+    );
+    dom.milestoneNextWeek.setAttribute(
+      'aria-label',
+      pro ? 'Next week' : 'Next week (Unlock with Blossom PRO)'
+    );
     dom.milestoneResetWeek.hidden =
-      previewMilestoneWeek === null || previewMilestoneWeek === clampedCurrent;
+      !pro || previewMilestoneWeek === null || previewMilestoneWeek === currentMin4;
 
     renderBabyNoteCard(shownWeek);
   }
@@ -674,6 +727,12 @@
     dom.primaryDateInput.value = '';
     dom.cycleLengthInput.value = 28;
     dom.dateError.hidden = true;
+    if (dom.babyNoteWeekDrawer) {
+      dom.babyNoteWeekDrawer.hidden = true;
+    }
+    if (dom.browseAllWeeksBtn) {
+      dom.browseAllWeeksBtn.setAttribute('aria-expanded', 'false');
+    }
     previewMilestoneWeek = null;
     lastRenderedMilestoneWeek = null;
     persist();
@@ -725,6 +784,40 @@
     dom.quickKickCount.textContent = String(state.kicks.quickCount);
   }
 
+  function createKickHistoryItem(sess, options = {}) {
+    const locked = Boolean(options.locked);
+    const item = createEl('div', locked ? 'history-item is-locked-history' : 'history-item');
+    const main = createEl('div', 'history-item-main');
+    const title = createEl(
+      'div',
+      'history-item-title',
+      `${sess.count} movement${sess.count === 1 ? '' : 's'} in ${calc.formatDurationWords(sess.durationSec)}`
+    );
+    const metaText = new Date(sess.startedAtMs).toLocaleString([], {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+    main.appendChild(title);
+    main.appendChild(createEl('div', 'history-item-meta', metaText));
+    item.appendChild(main);
+
+    if (!locked) {
+      const delBtn = createEl('button', 'delete-item-btn', '×');
+      delBtn.type = 'button';
+      delBtn.setAttribute('aria-label', 'Delete kick session');
+      delBtn.addEventListener('click', () => {
+        state.kicks.sessions = state.kicks.sessions.filter((s) => s.id !== sess.id);
+        persist();
+        renderKickHistory();
+      });
+      item.appendChild(delBtn);
+    }
+
+    return item;
+  }
+
   function renderKickHistory() {
     const list = dom.kickSessionsList;
     list.innerHTML = '';
@@ -736,36 +829,46 @@
       return;
     }
 
-    sessions.forEach((sess) => {
-      const item = createEl('div', 'history-item');
-      const main = createEl('div', 'history-item-main');
-      const title = createEl(
-        'div',
-        'history-item-title',
-        `${sess.count} movement${sess.count === 1 ? '' : 's'} in ${calc.formatDurationWords(sess.durationSec)}`
-      );
-      const metaText = new Date(sess.startedAtMs).toLocaleString([], {
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
+    const pro = isBlossomPro();
+    if (pro || sessions.length <= FREE_KICK_HISTORY_LIMIT) {
+      sessions.forEach((sess) => {
+        list.appendChild(createKickHistoryItem(sess, { locked: false }));
       });
-      main.appendChild(title);
-      main.appendChild(createEl('div', 'history-item-meta', metaText));
+      return;
+    }
 
-      const delBtn = createEl('button', 'delete-item-btn', '×');
-      delBtn.type = 'button';
-      delBtn.setAttribute('aria-label', 'Delete kick session');
-      delBtn.addEventListener('click', () => {
-        state.kicks.sessions = state.kicks.sessions.filter((s) => s.id !== sess.id);
-        persist();
-        renderKickHistory();
-      });
+    const recentSessions = sessions.slice(0, FREE_KICK_HISTORY_LIMIT);
+    const lockedSessions = sessions.slice(FREE_KICK_HISTORY_LIMIT);
 
-      item.appendChild(main);
-      item.appendChild(delBtn);
-      list.appendChild(item);
+    recentSessions.forEach((sess) => {
+      list.appendChild(createKickHistoryItem(sess, { locked: false }));
     });
+
+    const lockedWrap = createEl('div', 'kick-history-locked-wrap');
+    const blurredItems = createEl('div', 'kick-history-locked-items');
+    blurredItems.setAttribute('aria-hidden', 'true');
+    lockedSessions.forEach((sess) => {
+      blurredItems.appendChild(createKickHistoryItem(sess, { locked: true }));
+    });
+
+    const overlay = createEl('div', 'kick-history-lock-overlay');
+    const lockNote = createEl(
+      'p',
+      'kick-history-lock-note',
+      `🔒 ${lockedSessions.length} earlier session${lockedSessions.length === 1 ? '' : 's'} blurred on Free tier`
+    );
+    const unlockBtn = createEl('button', 'btn blossom-cta-btn kick-unlock-btn', 'Unlock Unlimited Kick History ✨');
+    unlockBtn.type = 'button';
+    unlockBtn.id = 'unlock-kick-history-btn';
+    unlockBtn.addEventListener('click', () => {
+      openBlossomPaywall(KICK_HISTORY_PAYWALL_MSG);
+    });
+
+    overlay.appendChild(lockNote);
+    overlay.appendChild(unlockBtn);
+    lockedWrap.appendChild(blurredItems);
+    lockedWrap.appendChild(overlay);
+    list.appendChild(lockedWrap);
   }
 
   function handleKickSessionTap() {
@@ -2253,9 +2356,80 @@
     }
   }
 
+  function renderBabyNoteWeekDrawer(stats, shownNoteWeek) {
+    if (!dom.browseAllWeeksBtn || !dom.babyNoteWeekPills) return;
+    const pro = isBlossomPro();
+    const currentNoteWeek = getCurrentBabyNoteWeek(stats);
+    const activeDisplayWeek = Math.max(4, Math.min(40, shownNoteWeek || currentNoteWeek));
+
+    dom.browseAllWeeksBtn.classList.toggle('is-unlocked', pro);
+    if (dom.browseWeeksLockBadge) {
+      dom.browseWeeksLockBadge.textContent = pro ? 'PRO ✨' : 'PRO 🔒';
+    }
+    if (dom.babyNoteDrawerHint) {
+      dom.babyNoteDrawerHint.textContent = pro
+        ? 'Tap any week (4–40) to read & listen to Baby’s weekly letter.'
+        : `Week ${currentNoteWeek} is free. Tap any locked week to unlock all 40 weeks with Blossom PRO.`;
+    }
+    if (dom.babyNoteCurrentWeekBtn) {
+      dom.babyNoteCurrentWeekBtn.hidden = !pro || activeDisplayWeek === currentNoteWeek;
+    }
+
+    dom.babyNoteWeekPills.innerHTML = '';
+    for (let w = 4; w <= 40; w += 1) {
+      const isCurrent = w === currentNoteWeek;
+      const isSelected = w === activeDisplayWeek;
+      const isLocked = !pro && !isCurrent;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.dataset.archiveWeek = String(w);
+      btn.className = 'week-archive-pill';
+      if (isCurrent) btn.classList.add('is-current');
+      if (isSelected) btn.classList.add('is-selected');
+      if (isLocked) btn.classList.add('is-locked');
+      btn.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+      btn.setAttribute(
+        'aria-label',
+        isCurrent
+          ? `Week ${w} (Current week, Free)`
+          : isLocked
+            ? `Week ${w} (Blossom PRO)`
+            : `Week ${w}`
+      );
+      btn.appendChild(document.createTextNode(`W${w}`));
+      if (isLocked) {
+        const lockSpan = createEl('span', 'week-archive-lock-icon', '🔒');
+        lockSpan.setAttribute('aria-hidden', 'true');
+        btn.appendChild(lockSpan);
+      }
+      dom.babyNoteWeekPills.appendChild(btn);
+    }
+  }
+
+  function selectArchiveWeek(targetWeek) {
+    const stats = getCurrentStats();
+    if (!stats || !stats.valid) return;
+    const currentNoteWeek = getCurrentBabyNoteWeek(stats);
+    const cleanWeek = Math.max(4, Math.min(40, Math.floor(Number(targetWeek) || currentNoteWeek)));
+    if (!isBlossomPro() && cleanWeek !== currentNoteWeek) {
+      openBlossomPaywall(WEEK_ARCHIVE_PAYWALL_MSG, () => {
+        previewMilestoneWeek = cleanWeek;
+        renderMilestoneCard(stats.weeks);
+      });
+      return;
+    }
+    const currentMilestoneWeek = getCurrentMilestoneWeek(stats);
+    previewMilestoneWeek = cleanWeek === currentMilestoneWeek ? null : cleanWeek;
+    renderMilestoneCard(stats.weeks);
+  }
+
   function renderBabyNoteCard(week) {
     if (!dom.babyNoteCard || !babyNotesMod) return;
-    const note = babyNotesMod.getBabyNote(week, getSavedUserName());
+    const stats = getCurrentStats();
+    const pro = isBlossomPro();
+    const currentNoteWeek = getCurrentBabyNoteWeek(stats);
+    const requestedWeek = !pro && stats && stats.valid ? currentNoteWeek : week;
+    const note = babyNotesMod.getBabyNote(requestedWeek, getSavedUserName());
     if (activeNoteWeek !== null && activeNoteWeek !== note.week && speechReader && speechReader.isSpeaking()) {
       speechReader.stop();
       setBabyNoteListenState('idle');
@@ -2266,10 +2440,22 @@
     if (dom.babyNoteTitle) dom.babyNoteTitle.textContent = note.title;
     if (dom.babyNoteMessage) dom.babyNoteMessage.textContent = note.message;
     if (dom.babyNoteSignoff) dom.babyNoteSignoff.textContent = note.signOff;
+
+    renderBabyNoteWeekDrawer(stats, note.week);
   }
 
   function handleBabyNoteListenClick() {
     if (!speechReader || !babyNotesMod) return;
+
+    const stats = getCurrentStats();
+    const currentNoteWeek = getCurrentBabyNoteWeek(stats);
+    const week = activeNoteWeek || currentNoteWeek;
+    if (!isBlossomPro() && stats && stats.valid && week !== currentNoteWeek) {
+      openBlossomPaywall(WEEK_ARCHIVE_PAYWALL_MSG, () => {
+        handleBabyNoteListenClick();
+      });
+      return;
+    }
 
     const currentState = typeof speechReader.getState === 'function'
       ? speechReader.getState()
@@ -2299,7 +2485,6 @@
       speechReader.stop();
     }
 
-    const week = activeNoteWeek || 4;
     const note = babyNotesMod.getBabyNote(week, getSavedUserName());
     const started = speechReader.speak(note, {
       onLoading: () => setBabyNoteListenState('loading'),
@@ -2714,7 +2899,7 @@
 
   function renderBlossomUi() {
     if (!blossomMod) return;
-    const unlocked = blossomMod.isBlossomUnlocked();
+    const unlocked = isBlossomPro();
     const receipt = blossomMod.getReceipt();
 
     if (dom.settingsBlossomCard) {
@@ -2773,6 +2958,8 @@
     triggerHaptic([18, 40, 24]);
     closeBlossomPaywall({ keepPendingAction: true });
     renderBlossomUi();
+    renderProgress();
+    renderKickHistory();
     startPastelConfetti();
     showToast(
       `Welcome to BellyHaven Blossom ✨ (${receipt && receipt.planTitle ? receipt.planTitle : 'Unlocked'})`
@@ -2787,7 +2974,10 @@
 
   function openBlossomPaywall(triggerReasonText, onUnlockAction) {
     if (!dom.blossomPaywallModal || !blossomMod) return;
-    if (blossomMod.isBlossomUnlocked()) {
+    if (isBlossomPro()) {
+      renderBlossomUi();
+      renderProgress();
+      renderKickHistory();
       if (typeof onUnlockAction === 'function') onUnlockAction();
       return;
     }
@@ -2988,12 +3178,19 @@
     function stepMilestoneWeek(delta) {
       const stats = getCurrentStats();
       if (!stats || !stats.valid) return;
-      const base = previewMilestoneWeek !== null ? previewMilestoneWeek : Math.max(4, Math.min(42, stats.weeks));
+      const currentWeek = getCurrentMilestoneWeek(stats);
+      const base = previewMilestoneWeek !== null ? previewMilestoneWeek : currentWeek;
       const next = Math.max(4, Math.min(42, base + delta));
-      if (next !== base) {
-        previewMilestoneWeek = next;
-        renderMilestoneCard(stats.weeks);
+      if (next === base) return;
+      if (!isBlossomPro() && next !== currentWeek) {
+        openBlossomPaywall(WEEK_ARCHIVE_PAYWALL_MSG, () => {
+          previewMilestoneWeek = next;
+          renderMilestoneCard(stats.weeks);
+        });
+        return;
       }
+      previewMilestoneWeek = next === currentWeek ? null : next;
+      renderMilestoneCard(stats.weeks);
     }
 
     dom.milestonePrevWeek.addEventListener('click', () => stepMilestoneWeek(-1));
@@ -3005,6 +3202,34 @@
       previewMilestoneWeek = null;
       renderMilestoneCard(stats.weeks);
     });
+
+    if (dom.browseAllWeeksBtn && dom.babyNoteWeekDrawer) {
+      dom.browseAllWeeksBtn.addEventListener('click', () => {
+        const nextHidden = !dom.babyNoteWeekDrawer.hidden;
+        dom.babyNoteWeekDrawer.hidden = nextHidden;
+        dom.browseAllWeeksBtn.setAttribute('aria-expanded', nextHidden ? 'false' : 'true');
+      });
+    }
+
+    if (dom.babyNoteWeekPills) {
+      dom.babyNoteWeekPills.addEventListener('click', (e) => {
+        const pill = e.target.closest('[data-archive-week]');
+        if (!pill) return;
+        const targetWeek = parseInt(pill.dataset.archiveWeek, 10);
+        if (Number.isFinite(targetWeek)) {
+          selectArchiveWeek(targetWeek);
+        }
+      });
+    }
+
+    if (dom.babyNoteCurrentWeekBtn) {
+      dom.babyNoteCurrentWeekBtn.addEventListener('click', () => {
+        const stats = getCurrentStats();
+        if (!stats || !stats.valid) return;
+        previewMilestoneWeek = null;
+        renderMilestoneCard(stats.weeks);
+      });
+    }
 
     if (dom.milestoneImage) {
       dom.milestoneImage.addEventListener('error', () => {
@@ -3639,6 +3864,14 @@
       renderAll();
       closeSettingsModal();
       showToast('All data cleared');
+    });
+
+    window.addEventListener('storage', (e) => {
+      if (e && (e.key === 'bellyhaven_pro' || e.key === 'bellyhaven_blossom_unlocked' || e.key === null)) {
+        renderBlossomUi();
+        renderProgress();
+        renderKickHistory();
+      }
     });
   }
 

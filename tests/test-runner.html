@@ -790,6 +790,30 @@
         }
       });
 
+      test('blossom respects bellyhaven_pro localStorage flag and clears cleanly on reset', () => {
+        blossomMod.clearBlossomTestingState();
+        assertEqual(blossomMod.PRO_KEY, 'bellyhaven_pro');
+        assertEqual(blossomMod.isBlossomPro(), false);
+        assertEqual(window.isBlossomPro(), false);
+
+        localStorage.setItem('bellyhaven_pro', 'true');
+        assertEqual(blossomMod.isBlossomPro(), true);
+        assertEqual(blossomMod.isBlossomUnlocked(), true);
+        assertEqual(window.isBlossomPro(), true);
+
+        localStorage.setItem('bellyhaven_pro', 'false');
+        assertEqual(blossomMod.isBlossomPro(), false);
+
+        blossomMod.recordPurchaseUnlock({ id: 'PRO-ORDER-1' }, 'onetime');
+        assertEqual(localStorage.getItem('bellyhaven_pro'), 'true');
+        assertEqual(localStorage.getItem('bellyhaven_blossom_unlocked'), 'true');
+        assertEqual(blossomMod.isBlossomPro(), true);
+
+        window.__resetBellyHaven({ reload: false });
+        assertEqual(localStorage.getItem('bellyhaven_pro'), null);
+        assertEqual(blossomMod.isBlossomPro(), false);
+      });
+
       const resultsList = document.getElementById('results');
       const summaryEl = document.getElementById('summary');
 

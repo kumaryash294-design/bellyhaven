@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bellyhaven-v22';
+const CACHE_NAME = 'bellyhaven-v23';
 const TTS_CACHE_NAME = 'bellyhaven-tts-assets-v1';
 const ASSETS = [
   './',

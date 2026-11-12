@@ -174,7 +174,19 @@
         <article id="baby-note-card" class="card baby-note-parchment" hidden>
           <div class="card-header-row baby-note-header">
             <div class="baby-note-title-wrap">
-              <span id="baby-note-week-pill" class="baby-note-week-pill">Week 4</span>
+              <div class="baby-note-pills-row">
+                <span id="baby-note-week-pill" class="baby-note-week-pill">Week 4</span>
+                <button
+                  type="button"
+                  id="browse-all-weeks-btn"
+                  class="browse-weeks-pill"
+                  aria-expanded="false"
+                  aria-controls="baby-note-week-drawer"
+                >
+                  <span id="browse-weeks-label">Browse All Weeks (4&#8211;40)</span>
+                  <span id="browse-weeks-lock-badge" class="browse-weeks-lock-badge">PRO</span>
+                </button>
+              </div>
               <h3>A Note from Baby &#128140;</h3>
             </div>
             <button
@@ -193,6 +205,13 @@
               </svg>
               <span id="baby-note-listen-label">Listen</span>
             </button>
+          </div>
+          <div id="baby-note-week-drawer" class="baby-note-week-drawer" hidden>
+            <div class="baby-note-drawer-head">
+              <span id="baby-note-drawer-hint" class="baby-note-drawer-hint">Current week is free. Unlock all 40 weeks with Blossom PRO.</span>
+              <button type="button" id="baby-note-current-week-btn" class="chip-btn" hidden>Current</button>
+            </div>
+            <div id="baby-note-week-pills" class="week-archive-grid" role="group" aria-label="Browse pregnancy weeks 4 to 40"></div>
           </div>
           <p id="baby-note-title" class="baby-note-salutation"></p>
           <blockquote id="baby-note-message" class="baby-note-body"></blockquote>
@@ -1105,6 +1124,7 @@
       <p class="blossom-subhead">No ad networks. No personal data brokers. Just clinical precision and complete peace of mind.</p>
 
       <ul class="blossom-benefits-list">
+        <li><span class="blossom-check" aria-hidden="true">&#10003;</span> All 40 Weeks of Baby Letters Archive, Future Previews &amp; Unlimited Kick History</li>
         <li><span class="blossom-check" aria-hidden="true">&#10003;</span> Unlimited 24/7 Haven AI Maternity Companion conversations</li>
         <li><span class="blossom-check" aria-hidden="true">&#10003;</span> Clinical Doctor Visit PDFs &amp; 1-Page Interactive Birth Plan Exports</li>
         <li><span class="blossom-check" aria-hidden="true">&#10003;</span> Custom Prenatal Weight Tracker with IOM Trajectory Curve</li>
