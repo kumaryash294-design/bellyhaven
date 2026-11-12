@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bellyhaven-v23';
+const CACHE_NAME = 'bellyhaven-v24';
 const TTS_CACHE_NAME = 'bellyhaven-tts-assets-v1';
 const ASSETS = [
   './',
@@ -100,7 +100,9 @@ function getNormalizedTtsMime(requestUrl, currentType) {
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
+    caches.open(CACHE_NAME).then((cache) =>
+      cache.addAll(ASSETS.map((url) => new Request(url, { cache: 'reload' })))
+    )
   );
   self.skipWaiting();
 });

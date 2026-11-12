@@ -905,6 +905,10 @@
   function handleKickFinish() {
     const active = state.kicks.activeSession;
     if (!active || active.tapTimestampsMs.length === 0) return;
+    if (state.kicks.sessions.length >= FREE_KICK_HISTORY_LIMIT && !isBlossomPro()) {
+      openBlossomPaywall(KICK_HISTORY_PAYWALL_MSG, () => handleKickFinish());
+      return;
+    }
     const endedAtMs = Date.now();
     const durationSec = Math.max(1, Math.round((endedAtMs - active.startedAtMs) / 1000));
     state.kicks.sessions.unshift({
@@ -3075,9 +3079,23 @@
         location.hostname === 'localhost' ||
         location.hostname === '127.0.0.1')
     ) {
-      navigator.serviceWorker.register('./sw.js').catch(() => {
-        // Offline SW optional; ignore registration failure
+      const hadController = Boolean(navigator.serviceWorker.controller);
+      let reloading = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!hadController || reloading) return;
+        reloading = true;
+        window.location.reload();
       });
+      navigator.serviceWorker
+        .register('./sw.js', { updateViaCache: 'none' })
+        .then((reg) => {
+          if (reg && typeof reg.update === 'function') {
+            reg.update().catch(() => {});
+          }
+        })
+        .catch(() => {
+          // Offline SW optional; ignore registration failure
+        });
     }
   }
 
